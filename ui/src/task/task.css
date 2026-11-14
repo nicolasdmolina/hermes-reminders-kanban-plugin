@@ -1,0 +1,263 @@
+/* Task dialog (design option A, "Conversation"): header with status pill, title and meta pills, a
+   hairline, then a scrolling body and a pinned footer. Host --ui-* / --dt-* tokens and the derived
+   --rk-* tokens from ui/src/theme/tokens.css only. */
+.rk-task {
+  container: rk-task / inline-size;
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  color: var(--rk-text-primary);
+}
+
+/* Header */
+.rk-head {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1.375rem 1.5rem 0.875rem;
+}
+.rk-head-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 1.875rem;
+}
+.rk-head-end {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+.rk-task-title {
+  margin: 0;
+  font-size: 1.1875rem;
+  font-weight: 600;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+  color: var(--rk-text-primary);
+}
+.rk-hairline {
+  height: 1px;
+  flex-shrink: 0;
+  background: var(--ui-stroke-tertiary);
+}
+
+/* Status pill: bounded primary ink on its tone's fill, with a dot in the tone. */
+.rk-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  border-radius: 999px;
+  background: var(--rk-fill-soft);
+  padding: 0.1875rem 0.5625rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.125rem;
+  color: var(--rk-text-primary);
+  white-space: nowrap;
+}
+/* Own dots for the states the host StatusDot has no tone for, drawn like SessionStatusDot. */
+.rk-pill-dot {
+  width: 0.375rem;
+  height: 0.375rem;
+  flex-shrink: 0;
+  border-radius: 999px;
+  background: var(--rk-accent-mark);
+}
+/* The host hues, bounded like every mark so the dot stays visible on its pill in every theme. */
+.rk-pill-dot[data-state='done'] {
+  background: var(--rk-done-mark);
+}
+.rk-pill-dot[data-state='active'] {
+  /* Working reads in the board card's running hue, so pill and card agree. It holds still: the
+     activity line's spinner carries the motion, and a fading dot fell under 3:1 (ticket 34). */
+  background: var(--rk-running);
+}
+.rk-pill-host-dot {
+  flex-shrink: 0;
+}
+.rk-pill[data-tone='attention'] {
+  background: var(--rk-attention-fill);
+}
+.rk-pill[data-tone='active'],
+.rk-pill[data-tone='agent'] {
+  background: var(--rk-agent-fill);
+}
+.rk-pill[data-tone='danger'] {
+  background: var(--rk-danger-fill);
+}
+.rk-pill[data-tone='done'] {
+  background: var(--rk-done-fill);
+}
+
+/* Meta pills: owner, list, due, priority. */
+.rk-meta-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+}
+.rk-meta-pill {
+  border-radius: 999px;
+  background: var(--rk-fill-soft);
+  padding: 0.125rem 0.5rem;
+  font-size: 0.75rem;
+  line-height: 1.125rem;
+  color: var(--rk-text-secondary);
+  overflow-wrap: anywhere;
+}
+.rk-meta-pill[data-tone='agent'] {
+  background: var(--rk-agent-fill);
+  color: var(--rk-agent-text);
+}
+.rk-meta-pill[data-tone='overdue'] {
+  background: var(--rk-danger-fill);
+  color: var(--rk-danger-text);
+}
+
+/* Body and footer */
+/* The task dialog sits on core chat's opaque chrome surface (what the chat surface resolves to
+   outside glass mode), not the dialog's translucent fill, so the board does not show through. */
+.rk-task-dialog {
+  width: min(47.5rem, 94vw);
+  background: var(--ui-bg-chrome);
+}
+/* A Hermes task (layout A, "Taller window"; height from the council decision). Every height rule
+   lives in this block.
+   - Needs you (a composer: a question, a result in review): a fixed height that does not grow
+     with content, min(88vh, 960px), at least 560px, shrinking below that on short windows to
+     keep 16px clear above and below.
+   - Finished (no composer: done, accepted, stopped, read-only): sized to its content, from a
+     360px floor up to the same min(88vh, 960px); a long thread scrolls inside. Going from review
+     to accepted while open shrinks it over 200ms (none under reduced motion).
+   - At 720px wide or less, or under 600px tall: full-bleed, the whole window, square, hairline
+     only, either way.
+   Only the thread scrolls; header, result actions and composer stay put. */
+.rk-task-dialog-tall {
+  --rk-tall-height: 88vh;
+  --rk-tall-max: 960px;
+  --rk-tall-min: 560px;
+  --rk-tall-clear: 16px;
+  --rk-finished-min: 360px;
+  height: max(min(var(--rk-tall-height), var(--rk-tall-max)), min(var(--rk-tall-min), calc(100vh - 2 * var(--rk-tall-clear))));
+  max-height: calc(100vh - 2 * var(--rk-tall-clear));
+  interpolate-size: allow-keywords;
+  transition: height 200ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.rk-task-dialog-tall:not(:has(.rk-composer-wrap)) {
+  height: auto;
+  min-height: min(var(--rk-finished-min), calc(100vh - 2 * var(--rk-tall-clear)));
+  max-height: min(var(--rk-tall-height), var(--rk-tall-max));
+}
+/* Queued work has only its wait to show: the dialog fits it instead of holding the finished floor. */
+.rk-task-dialog-tall.rk-task-dialog-brief:not(:has(.rk-composer-wrap)) {
+  min-height: 0;
+}
+.rk-task-dialog-body {
+  min-height: 0;
+  max-height: none;
+  flex: 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .rk-task-dialog-tall {
+    transition: none;
+  }
+}
+@media (max-width: 720px), (max-height: 600px) {
+  .rk-task-dialog-tall,
+  .rk-task-dialog-tall:not(:has(.rk-composer-wrap)) {
+    width: 100vw;
+    max-width: 100vw;
+    height: 100dvh;
+    min-height: 0;
+    max-height: 100dvh;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+}
+
+
+
+.rk-task-body {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 1rem;
+  overflow-y: auto;
+  padding: 1.25rem 1.5rem;
+}
+.rk-task-foot {
+  flex-shrink: 0;
+  padding: 0.875rem 1.125rem 1.125rem;
+}
+.rk-task-foot:empty {
+  display: none;
+}
+
+/* Plain reminder details: notes, then a property grid. */
+.rk-section + .rk-section {
+  margin-top: 0.25rem;
+}
+.rk-label {
+  margin: 0 0 0.375rem;
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--rk-text-tertiary);
+}
+.rk-notes {
+  margin: 0;
+  max-width: 70ch;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 0.875rem;
+  line-height: 1.55;
+  color: var(--rk-text-primary);
+}
+.rk-link {
+  border: 0;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-size: 0.8125rem;
+  text-align: left;
+  overflow-wrap: anywhere;
+  color: var(--rk-agent-text);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+.rk-props {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
+  gap: 0.875rem 1.25rem;
+  margin: 0;
+}
+.rk-props dd {
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.25rem;
+  overflow-wrap: anywhere;
+  color: var(--rk-text-primary);
+}
+.rk-gone {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--rk-text-secondary);
+}
+
+
+@container rk-task (max-width: 34rem) {
+  .rk-head {
+    padding: 1.125rem 1.125rem 0.75rem;
+  }
+  .rk-task-body {
+    padding: 1rem 1.125rem;
+  }
+  .rk-task-foot {
+    padding: 0.75rem 0.875rem 0.875rem;
+  }
+}

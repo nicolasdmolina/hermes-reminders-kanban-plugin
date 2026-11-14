@@ -1,0 +1,104 @@
+/* View control (ticket 19). The trigger is a header ghost button that reads as engaged while
+   the view is customized, the way the Sessions filter does: the host's active-control fill,
+   never the accent. The panel is the host menu surface (PopoverContent variant="menu"),
+   portaled to <body>, so every rule is scoped by its own rk- class. */
+.rk-view-trigger[data-engaged],
+.rk-view-trigger[data-state='open'] {
+  background: var(--ui-control-active-background);
+  color: var(--rk-text-primary);
+}
+
+.rk-view-panel {
+  display: flex;
+  width: 19.5rem;
+  max-width: calc(100vw - 1rem);
+  flex-direction: column;
+  gap: 0.375rem;
+  padding: 0.625rem 0.625rem 0.5rem;
+  font-family: var(--font-sans);
+}
+.rk-view-row {
+  display: grid;
+  grid-template-columns: 4rem minmax(0, 1fr);
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 1.5rem;
+}
+.rk-view-row[data-align='start'] {
+  align-items: start;
+}
+.rk-view-row[data-align='start'] > .rk-view-label {
+  padding-top: 0.25rem;
+}
+.rk-view-label {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  line-height: 1rem;
+  color: var(--rk-text-tertiary);
+}
+.rk-view-select {
+  width: 100%;
+}
+.rk-view-lists {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.125rem;
+  max-height: 10rem;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--ui-stroke-secondary) transparent;
+}
+.rk-view-check {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: 0.3125rem;
+  padding: 0.25rem 0.25rem;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  color: var(--rk-text-primary);
+  cursor: pointer;
+}
+.rk-view-check:hover {
+  background: var(--ui-row-hover-background);
+}
+.rk-view-check > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rk-view-separator {
+  margin: 0.125rem -0.625rem;
+  width: auto;
+}
+/* The ghost button's own padding would indent its label past the row labels above. */
+.rk-view-reset {
+  align-self: flex-start;
+  margin-left: -0.5rem;
+}
+/* Owner and Repeats share one track width so the panel reads as a column of settings. */
+.rk-view-segments {
+  width: 100%;
+}
+/* The host paints unselected segments and ghost buttons with translucent ladder steps that fall
+   to about 2:1 in some themes (GitHub light). The bounded plugin ladder keeps each theme's own
+   color where it already reads and darkens it just enough where it does not. */
+.rk-view-segments > button[aria-pressed='false'],
+.rk-view-trigger,
+.rk-view-reset {
+  color: var(--rk-text-secondary);
+}
+.rk-view-segments > button[aria-pressed='false']:hover,
+.rk-view-reset:hover {
+  color: var(--rk-text-primary);
+}
+/* The host checkbox's unchecked edge is near-invisible on the menu surface (as in onboarding). */
+.rk-view-checkbox-unchecked {
+  border-color: var(--ui-stroke-secondary);
+}
+/* Notice actions sit on the notice fill: primary ink with the raised bounds (theme/tokens.css). */
+.rk-view-action {
+  color: var(--rk-text-primary);
+}

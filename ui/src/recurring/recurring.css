@@ -1,0 +1,31 @@
+/* Repeating reminders (ticket 21). Colors: host tokens and theme/tokens.css only. The host menu
+   paints the surface, rows and highlight; this only lays out the date beside the choice. */
+.rk-occ-menu {
+  min-width: 13rem;
+}
+.rk-occ-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.rk-occ-when {
+  color: var(--rk-text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+.rk-occ-item[data-highlighted] .rk-occ-when {
+  color: inherit;
+}
+
+/* "Did you check it off in Reminders?" and its two answers wrap as one group; the answers never
+   split from each other. */
+.rk-occ-ask {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.375rem 0.5rem;
+}
+.rk-occ-answers {
+  display: flex;
+  gap: 0.5rem;
+}

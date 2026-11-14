@@ -1,0 +1,76 @@
+/* Task-link setup. Reuses onboarding's .rk-setup-head, .rk-checks, .rk-facts and .rk-setup-footer. */
+.rk-link-setup {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+.rk-link-setup .rk-link-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.5rem;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+.rk-check-state {
+  min-width: 0;
+}
+.rk-check-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rk-check-state[data-mono] {
+  max-width: 65%;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  color: var(--rk-text-secondary);
+}
+.rk-check-state[data-tone='warn'] {
+  color: var(--rk-text-secondary);
+}
+.rk-check-state[data-tone='warn'] [class*='codicon'] {
+  color: var(--rk-attention);
+}
+.rk-link-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  margin: 0;
+}
+.rk-link-input {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+}
+.rk-link-detail,
+.rk-link-note {
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.125rem;
+  color: var(--rk-text-tertiary);
+  text-wrap: pretty;
+}
+.rk-link-host {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  color: var(--rk-text-secondary);
+}
+.rk-facts dd > .rk-link-host,
+.rk-pickup-facts dd > .rk-link-host {
+  max-width: 14rem;
+}
+.rk-pickup-local {
+  color: var(--rk-text-tertiary);
+}
+
+/* The panel in a dialog, from the Pickup popover. */
+.rk-link-dialog {
+  width: min(30rem, calc(100vw - 2rem));
+  padding: 1.25rem;
+}

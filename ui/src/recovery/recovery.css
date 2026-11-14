@@ -1,0 +1,69 @@
+/* Recovery states (ticket 17). A usage wait gets Hermes' hollow session dot (SessionStatusDot's
+   stalled state: still on, nothing running), on the dialog's pill and on the card. Everything else
+   uses ticket 13's card state line and the conversation's own live line and footer row.
+   Colors are host tokens and the derived --rk-* tokens only (ui/src/theme/tokens.css). */
+
+/* The status pill's own dot for a usage wait. */
+.rk-pill-dot[data-state='waiting'] {
+  box-sizing: border-box;
+  border: 1px solid var(--rk-accent-mark);
+  background: transparent;
+}
+
+/* The card's state line (delegation/Agent.jsx AgentStatus) for a usage wait: the same hollow ring,
+   and "Next check 4:05 PM" always on its own line under the label, never split. */
+.rk-agent-dot[data-tone='waiting'] {
+  box-sizing: border-box;
+  border: 1px solid var(--rk-accent-mark);
+  background: transparent;
+}
+.rk-agent-state[data-tone='waiting'] {
+  flex-wrap: wrap;
+}
+.rk-agent-state[data-tone='waiting'] .rk-agent-next {
+  flex-basis: 100%;
+  padding-left: 0.75rem;
+  white-space: nowrap;
+}
+
+/* A recovery's live line is its explanation: it wraps instead of being cut off at narrow widths. */
+/* The explanation wraps inside its own column; the next-check time stays beside it. */
+.rk-activity[data-recovery] {
+  align-items: flex-start;
+}
+.rk-activity[data-recovery] .rk-activity-label {
+  overflow: visible;
+  white-space: normal;
+}
+.rk-activity[data-recovery] .rk-activity-meta {
+  flex-shrink: 0;
+}
+
+/* The footer row: right-aligned like ticket 13's actions (the browser page loads only these styles). */
+.rk-recovery-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+/* Beside the board's own actions (Stop): one right-aligned group, not two spread apart. */
+.rk-agent-actions + .rk-recovery-actions {
+  margin-left: 0;
+}
+
+/* Retry / Repair sign-in in the dialog's footer row: the host Button's own focus ring does not
+   reach a disk plugin, so it is drawn from the theme's focus mark, like the composer's send. */
+.rk-recovery-actions button:focus-visible {
+  outline: 2px solid var(--rk-focus);
+  outline-offset: 2px;
+}
+.rk-recovery-actions [role='status']:focus {
+  outline: none;
+}
+
+/* The browser page has no board actions: a footer with nothing to offer takes no room. */
+.rk-tl-board-foot:empty {
+  display: none;
+}

@@ -1,0 +1,14 @@
+.DS_Store
+.env
+.env.*
+!.env.example
+*.log
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+node_modules/
+# Built from ui/src by `npm run build` in ui/ (see docs/agents/build-rules.md).
+desktop/plugin.js
+desktop/.hermes-package.json
+dashboard/dist/

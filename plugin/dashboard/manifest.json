@@ -1,0 +1,12 @@
+{
+  "name": "reminders-kanban",
+  "label": "Reminders Kanban",
+  "description": "Kanban board for Apple Reminders with delegation to Hermes.",
+  "version": "0.1.0-beta.1",
+  "tab": {
+    "path": "/reminders",
+    "hidden": true
+  },
+  "api": "plugin_api.py",
+  "entry": "dist/index.js"
+}

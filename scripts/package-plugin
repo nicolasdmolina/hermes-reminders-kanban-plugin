@@ -1,0 +1,117 @@
+#!/usr/bin/env python3
+"""Build, stage, or check the installable Hermes plugin directory."""
+
+import argparse
+import json
+import shutil
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+PUBLIC_DOCS = (
+    "README.md", "LICENSE", "THIRD_PARTY_NOTICES.md", "licenses/codicons.txt",
+    "docs/installation.md", "docs/development.md",
+)
+
+
+def build(root=ROOT):
+    subprocess.run(["npm", "ci"], cwd=root / "ui", check=True)
+    subprocess.run(["npm", "run", "build"], cwd=root / "ui", check=True)
+
+
+def runtime_files(root, *, backend_only=False):
+    files = {Path(name) for name in ("plugin.yaml", "__init__.py", *PUBLIC_DOCS)}
+    for name in ("board.png", "setup.png"):
+        image = Path("docs/media") / name
+        if (root / image).is_file():
+            files.add(image)
+    files.update(path.relative_to(root) for path in (root / "reminders_kanban").rglob("*.py"))
+    files.update(Path(name) for name in ("dashboard/manifest.json", "dashboard/plugin_api.py"))
+    native = root / "native/reminders-helper"
+    files.update(path.relative_to(root) for path in native.glob("*.swift"))
+    files.update(Path("native/reminders-helper") / name for name in ("build.sh", "Info.plist"))
+    if not backend_only:
+        desktop = Path("desktop/plugin.js")
+        if not (root / desktop).is_file():
+            raise ValueError("desktop/plugin.js is missing; build ui/ first")
+        files.add(desktop)
+        manifest = json.loads((root / "dashboard/manifest.json").read_text())
+        entry = manifest.get("entry")
+        if entry:
+            entry_path = Path("dashboard") / entry
+            if not (root / entry_path).resolve().is_relative_to((root / "dashboard").resolve()):
+                raise ValueError("dashboard entry must stay inside dashboard/")
+            if not (root / entry_path).is_file():
+                raise ValueError(f"{entry_path} is missing; build ui/ first")
+            files.add(entry_path)
+    for path in files:
+        if not (root / path).is_file() or (root / path).is_symlink():
+            raise ValueError(f"missing or symlinked package source: {path}")
+    return sorted(files)
+
+
+def check_package(destination, *, backend_only=False, root=ROOT):
+    if destination.is_symlink():
+        raise ValueError("package differs from built sources: destination is a symlink")
+    expected = {str(path): (root / path).read_bytes()
+                for path in runtime_files(root, backend_only=backend_only)}
+    actual = {str(path.relative_to(destination)): path.read_bytes()
+              for path in destination.rglob("*") if path.is_file() and not path.is_symlink()}
+    symlinks = [path for path in destination.rglob("*") if path.is_symlink()]
+    if symlinks or actual != expected:
+        changed = sorted(key for key in expected.keys() | actual.keys()
+                         if expected.get(key) != actual.get(key))
+        raise ValueError(f"package differs from built sources: {', '.join(changed)}")
+    return destination
+
+
+def package(destination: Path, *, backend_only: bool = False, root: Path = ROOT):
+    files = runtime_files(root, backend_only=backend_only)
+    if root.resolve().is_relative_to(destination.resolve()):
+        raise ValueError("package destination must not contain the source checkout")
+    destination.mkdir(parents=True, exist_ok=False)
+    for path in files:
+        target = destination / path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(root / path, target)
+        target.chmod(0o755 if (root / path).stat().st_mode & 0o111 else 0o644)
+    return destination
+
+
+def prepare_helper(destination):
+    # Load the staged sources so the cache key matches exactly what Hermes installs.
+    with tempfile.TemporaryDirectory(prefix="rk-package-helper-") as cache:
+        subprocess.run([
+            # -B: no __pycache__ in the package; Hermes's install scan flags committed bytecode.
+            sys.executable, "-B", "-c",
+            "from pathlib import Path; import shutil; "
+            "from reminders_kanban.reminders import helper; "
+            "helper.BUILD_DIR = Path(__import__('sys').argv[1]); "
+            "helper.LEGACY_DIR = helper.BUILD_DIR / 'legacy'; "
+            "app = helper.helper_app(); "
+            "target = Path('native/prepared-helper') / app.parent.name / app.name; "
+            "target.parent.mkdir(parents=True, exist_ok=True); "
+            "shutil.copytree(app, target)",
+            cache,
+        ], cwd=destination, check=True)
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("destination", type=Path)
+    parser.add_argument("--backend-only", action="store_true", help="integration proof only")
+    parser.add_argument("--build", action="store_true", help="install UI dependencies and build")
+    parser.add_argument("--check", action="store_true", help="compare a tree byte for byte")
+    args = parser.parse_args()
+    if args.build:
+        build()
+    operation = check_package if args.check else package
+    try:
+        destination = operation(args.destination.resolve(), backend_only=args.backend_only)
+        if args.build and not args.check and sys.platform == "darwin":
+            prepare_helper(destination)
+        print(destination)
+    except (ValueError, FileExistsError) as error:
+        parser.exit(1, f"{error}\n")

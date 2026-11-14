@@ -1,0 +1,228 @@
+/* Plugin color tokens: the only place the plugin derives a color.
+   Hermes has no status tokens, so each tone starts from a host token and adapts to every
+   preset, light/dark mode, accent and user theme. Defined on :root because host dialogs and
+   popovers portal to <body>, outside .rk-page. Feature CSS uses these and host --ui-* / --dt-*
+   tokens only, never a literal color (ui/test/theme.test.js enforces it). Rules for new
+   features are in docs/agents/build-rules.md. */
+
+/* Lightness bounds (OKLCH L) that keep ink readable on the surface it sits on. Text clears
+   4.5:1 and marks (dots, icons, focus) 3:1. Light surfaces cap ink lightness, dark surfaces
+   floor it, so a theme that already meets the bar paints its own color unchanged. Tiles,
+   pills and a focused tile are a step or two off the page, so they get tighter bounds. Dark
+   inks also cap chroma: a light, saturated red or blue falls outside sRGB, and the clipped
+   color paints darker than its lightness says.
+   Measured worst cases on 2026-11-06 across all 12 presets: a due pill on a focused tile in
+   light themes (surface L about 0.82) and in dark themes (surface L about 0.43, Classic dark). */
+:root {
+  --rk-ink-lo: 0;
+  --rk-ink-hi: 0.5;
+  --rk-ink-c: 0.3;
+  --rk-mark-lo: 0;
+  --rk-mark-hi: 0.6;
+}
+:root.dark {
+  --rk-ink-lo: 0.74;
+  --rk-ink-hi: 1;
+  --rk-ink-c: 0.12;
+  --rk-mark-lo: 0.66;
+  --rk-mark-hi: 1;
+}
+/* Board controls paint their own fill under text, so their inks take the tile bounds. */
+.rk-view-trigger,
+.rk-view-action,
+.rk-lists-trigger,
+.rk-header [data-rk-new],
+.rk-notice-actions > button,
+.rk-card-actions > button {
+  --rk-ink-lo: 0;
+  --rk-ink-hi: 0.43;
+  --rk-ink-c: 0.3;
+  --rk-mark-lo: 0;
+  --rk-mark-hi: 0.5;
+}
+:root.dark .rk-view-trigger,
+:root.dark .rk-view-action,
+:root.dark .rk-lists-trigger,
+:root.dark .rk-header [data-rk-new],
+:root.dark .rk-notice-actions > button,
+:root.dark .rk-card-actions > button {
+  --rk-ink-lo: 0.84;
+  --rk-ink-hi: 1;
+  --rk-ink-c: 0.09;
+  --rk-mark-lo: 0.72;
+  --rk-mark-hi: 1;
+}
+.rk-card,
+.rk-column-count {
+  --rk-ink-lo: 0;
+  --rk-ink-hi: 0.43;
+  --rk-ink-c: 0.3;
+  --rk-mark-lo: 0;
+  --rk-mark-hi: 0.5;
+}
+:root.dark .rk-card,
+:root.dark .rk-column-count {
+  --rk-ink-lo: 0.84;
+  --rk-ink-hi: 1;
+  --rk-ink-c: 0.09;
+  --rk-mark-lo: 0.72;
+  --rk-mark-hi: 1;
+}
+/* A focused light tile is one surface step deeper (--ui-bg-secondary), so its marks cap a little
+   lower. Measured 2026-11-06 (ticket 13): the task-link mark on a focused tile in Solarized light
+   was 2.91:1 at the tile bound. */
+:root:not(.dark) .rk-card:focus-visible {
+  --rk-mark-hi: 0.45;
+}
+
+/* The need-you chip and its menu rows (ticket 34) paint a fill under their text: a hovered chip
+   and a highlighted row sit a step deeper than the page or menu, so light inks take the tile cap.
+   Measured 2026-11-09 in Everforest light at the page cap: the hovered chip 4.16:1, the row title
+   4.31:1. Dark ones already clear the page floor. */
+:root:not(.dark) .rk-attn-chip,
+:root:not(.dark) .rk-attn-item {
+  --rk-ink-hi: 0.43;
+  --rk-mark-hi: 0.5;
+}
+
+/* Task conversation surfaces (ticket 08): pills, message bubbles and the composer sit a step off
+   the dialog like a tile, so their inks take the tile bounds (light and dark, on Desktop and on
+   the browser page). */
+.rk-pill,
+.rk-meta-pill,
+.rk-user-bubble,
+.rk-sheet,
+.rk-composer {
+  --rk-ink-lo: 0;
+  --rk-ink-hi: 0.43;
+  --rk-ink-c: 0.3;
+  --rk-mark-lo: 0;
+  --rk-mark-hi: 0.5;
+}
+:root.dark .rk-pill,
+:root.dark .rk-meta-pill,
+:root.dark .rk-user-bubble,
+:root.dark .rk-sheet,
+:root.dark .rk-composer,
+.rk-dash[data-mode='dark'] .rk-pill,
+.rk-dash[data-mode='dark'] .rk-meta-pill,
+.rk-dash[data-mode='dark'] .rk-user-bubble,
+.rk-dash[data-mode='dark'] .rk-sheet,
+.rk-dash[data-mode='dark'] .rk-composer {
+  --rk-ink-lo: 0.84;
+  --rk-ink-hi: 1;
+  --rk-ink-c: 0.09;
+  --rk-mark-lo: 0.72;
+  --rk-mark-hi: 1;
+}
+
+/* The browser task page (ticket 08) sits on the Hermes web dashboard, which names none of the
+   host tokens above and has no :root.dark. ui/src/task-link/dashboard.css maps the host tokens
+   onto .rk-dash from the dashboard's own theme, and dashboard.jsx sets data-mode from its page
+   color, so the inks derive there with the bounds of that mode. */
+.rk-dash {
+  --rk-ink-lo: 0;
+  --rk-ink-hi: 0.5;
+  --rk-ink-c: 0.3;
+  --rk-mark-lo: 0;
+  --rk-mark-hi: 0.6;
+}
+.rk-dash[data-mode='dark'] {
+  --rk-ink-lo: 0.74;
+  --rk-ink-hi: 1;
+  --rk-ink-c: 0.12;
+  --rk-mark-lo: 0.66;
+  --rk-mark-hi: 1;
+}
+
+/* Custom properties compute where they are declared, so the inks are declared again on each
+   raised surface to pick up its tighter bounds. An element that paints a fill under its own
+   text joins this list and the bounds above. */
+:root,
+.rk-card,
+.rk-column-count,
+.rk-attn-chip,
+.rk-attn-item,
+.rk-dash,
+.rk-pill,
+.rk-meta-pill,
+.rk-user-bubble,
+.rk-sheet,
+.rk-composer,
+.rk-view-trigger,
+.rk-view-action,
+.rk-lists-trigger,
+.rk-header [data-rk-new],
+.rk-notice-actions > button,
+.rk-card-actions > button {
+  /* Status hues keep the native Kanban's meaning (Ready blue, running green, attention amber),
+     bent toward the theme accent the way Hermes bends --ui-success. Mixing in oklch keeps the
+     hue when the accent is achromatic (Mono) and settles it into the palette otherwise. */
+  --rk-hue-agent: color-mix(in oklch, var(--ui-blue) 78%, var(--ui-accent));
+  --rk-hue-running: var(--ui-success, color-mix(in oklch, var(--ui-green) 78%, var(--ui-accent)));
+  --rk-hue-attention: color-mix(in oklch, var(--ui-yellow) 85%, var(--ui-accent));
+  --rk-hue-danger: var(--dt-destructive);
+  --rk-hue-focus: var(--dt-composer-ring, var(--dt-ring));
+  /* Done is the host's positive color (ticket 10, design option A). Hermes has no success
+     token for it, and --ui-green carries its own light and dark values. Fills use it as is. */
+  --rk-done-tint: var(--ui-green);
+
+  /* Marks: column dots, icon chips, focus. --rk-focus is offered for focus marks; ticket 10
+     owns the card focus style itself. */
+  --rk-agent: oklch(from var(--rk-hue-agent) clamp(var(--rk-mark-lo), l, var(--rk-mark-hi)) c h);
+  --rk-running: oklch(from var(--rk-hue-running) clamp(var(--rk-mark-lo), l, var(--rk-mark-hi)) c h);
+  --rk-attention: oklch(from var(--rk-hue-attention) clamp(var(--rk-mark-lo), l, var(--rk-mark-hi)) c h);
+  --rk-focus: oklch(from var(--rk-hue-focus) clamp(var(--rk-mark-lo), l, var(--rk-mark-hi)) c h);
+  --rk-accent-mark: oklch(from var(--dt-primary) clamp(var(--rk-mark-lo), l, var(--rk-mark-hi)) c h);
+  --rk-done-mark: oklch(from var(--rk-done-tint) clamp(var(--rk-mark-lo), l, var(--rk-mark-hi)) c h);
+
+  /* Status text. */
+  --rk-agent-text: oklch(from var(--rk-hue-agent) clamp(var(--rk-ink-lo), l, var(--rk-ink-hi)) min(c, var(--rk-ink-c)) h);
+  --rk-running-text: oklch(from var(--rk-hue-running) clamp(var(--rk-ink-lo), l, var(--rk-ink-hi)) min(c, var(--rk-ink-c)) h);
+  --rk-danger-text: oklch(from var(--rk-hue-danger) clamp(var(--rk-ink-lo), l, var(--rk-ink-hi)) min(c, var(--rk-ink-c)) h);
+  --rk-done-text: oklch(from color-mix(in srgb, var(--rk-done-tint) 55%, var(--foreground)) clamp(var(--rk-ink-lo), l, var(--rk-ink-hi)) min(c, var(--rk-ink-c)) h);
+
+  /* Neutral text: the host ladder (--ui-text-primary/-secondary/-tertiary/-quaternary are the
+     base at 94/74/54/36% alpha), composited over the page so it can be measured, then bounded
+     like every other ink. Where the host step already passes it paints unchanged; where it
+     does not (the lighter steps on most light themes, everything on Solarized dark tiles) it
+     steps just far enough toward the foreground. */
+  --rk-text-primary: oklch(from var(--foreground) clamp(var(--rk-ink-lo), l, var(--rk-ink-hi)) min(c, var(--rk-ink-c)) h);
+  --rk-text-secondary: oklch(from color-mix(in srgb, var(--ui-base) 74%, var(--ui-surface-background)) clamp(var(--rk-ink-lo), l, var(--rk-ink-hi)) min(c, var(--rk-ink-c)) h);
+  --rk-text-tertiary: oklch(from color-mix(in srgb, var(--ui-base) 54%, var(--ui-surface-background)) clamp(var(--rk-ink-lo), l, var(--rk-ink-hi)) min(c, var(--rk-ink-c)) h);
+  --rk-text-quaternary: oklch(from color-mix(in srgb, var(--ui-base) 36%, var(--ui-surface-background)) clamp(var(--rk-ink-lo), l, var(--rk-ink-hi)) min(c, var(--rk-ink-c)) h);
+
+  /* Neutral column tones use the same ladder. */
+  --rk-todo: var(--rk-text-secondary);
+  --rk-done: var(--rk-text-tertiary);
+
+  /* Tinted fills. */
+  --rk-attention-fill: color-mix(in srgb, var(--rk-attention) 10%, transparent);
+  /* Opaque over the page color, so the overdue pill keeps its contrast on any tile state. */
+  --rk-danger-fill: color-mix(in srgb, var(--rk-hue-danger) 14%, var(--ui-surface-background));
+  --rk-selection: color-mix(in srgb, var(--dt-primary) 22%, transparent);
+}
+
+/* Task conversation (ticket 08): the soft neutral fill under Hermes messages, the composer and
+   meta pills, and status-pill fills for each tone (attention and danger fills are above). */
+:root,
+.rk-dash {
+  --rk-fill-soft: color-mix(in srgb, var(--foreground) 5%, transparent);
+  --rk-agent-fill: color-mix(in srgb, var(--rk-agent) 13%, transparent);
+  --rk-running-fill: color-mix(in srgb, var(--rk-running) 13%, transparent);
+  --rk-done-fill: color-mix(in srgb, var(--rk-done-mark) 13%, transparent);
+  /* Core chat's composer surface and send button states (styles.css --composer-fill, controls). */
+  --rk-composer-fill: color-mix(in srgb, var(--dt-card) 88%, transparent);
+  --rk-send-hover: color-mix(in srgb, var(--foreground) 90%, transparent);
+  --rk-send-disabled: color-mix(in srgb, var(--foreground) 30%, transparent);
+}
+
+/* Text for screen readers only. Here so the board and the browser task page both have it. */
+.rk-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}

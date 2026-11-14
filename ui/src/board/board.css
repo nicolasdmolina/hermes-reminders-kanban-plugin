@@ -1,0 +1,219 @@
+/* Board: five columns of soft tiles (design option B, "Soft tiles"). Host tokens only:
+   tiles sit one surface step off the page, rise on hover and focus, and Done tiles are
+   tinted with the host's positive color (Done option A). Spacing follows the design: 16px
+   between lanes, 8px between tiles. */
+.rk-board {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  gap: 0.5rem;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  /* 6px 24px 24px around the lanes, less each lane's own 4px. */
+  padding: 0.125rem 1.25rem 1.25rem;
+  scroll-padding-inline: 1.25rem;
+}
+.rk-column {
+  display: flex;
+  /* Share the board width so all five lanes fit a normal window; below the minimum the
+     board scrolls sideways, and narrow split tiles switch to one lane at a time. */
+  flex: 1 1 0;
+  min-width: 13rem;
+  max-width: 22rem;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-height: 0;
+  border-radius: 0.75rem;
+  /* Room for the drop wash while dragging. */
+  padding: 0.25rem;
+}
+.rk-column-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.25rem 0.375rem;
+}
+.rk-dot {
+  width: 0.375rem;
+  height: 0.375rem;
+  flex-shrink: 0;
+  border-radius: 999px;
+  background: var(--rk-tone);
+}
+.rk-column-name {
+  font-size: 0.78125rem;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--rk-text-primary);
+}
+.rk-column-count {
+  border-radius: 999px;
+  background: var(--ui-bg-tertiary);
+  padding: 0.0625rem 0.4375rem;
+  font-size: 0.71875rem;
+  line-height: 1rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--rk-text-tertiary);
+}
+.rk-column-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+  gap: 0.5rem;
+  overflow-y: auto;
+  /* Room for a raised tile's shadow inside the scrolling lane. */
+  margin: -0.5rem;
+  padding: 0.5rem;
+  scrollbar-width: thin;
+  scrollbar-color: var(--ui-stroke-secondary) transparent;
+}
+/* An empty lane is quiet: one line under its header, no frame. The lane's own drop wash
+   (editor.css) is what marks it as a target while dragging. */
+.rk-column-empty {
+  flex: 1;
+  min-height: 4rem;
+  padding: 0.5rem 0.25rem;
+  font-size: 0.71875rem;
+  color: var(--rk-text-quaternary);
+}
+/* Show all under an empty Done window's line. */
+.rk-show-all.rk-show-all-inline {
+  display: block;
+  margin-top: 0.375rem;
+  padding-left: 0;
+}
+
+.rk-card {
+  all: unset;
+  box-sizing: border-box;
+  position: relative;
+  display: flex;
+  flex-shrink: 0;
+  flex-direction: column;
+  gap: 0.5rem;
+  border-radius: 0.625rem;
+  background: var(--ui-bg-card);
+  padding: 0.75rem 0.75rem 0.6875rem;
+  cursor: pointer;
+  text-align: left;
+  transition:
+    background-color 120ms ease-out,
+    box-shadow 120ms ease-out;
+}
+/* Hover raises the tile. Keyboard focus sets it one surface step deeper than its neighbours,
+   keeps the lift (--shadow-nous), and adds a 1px neutral foreground hairline; no accent ring. Measured in the
+   sandbox across all 12 host themes, light and dark: at least 3.75:1 against the focused tile
+   (Everforest light is the lowest; a 90% mix fell to 3.09:1 there). */
+.rk-card:hover {
+  outline: none;
+  background: var(--ui-bg-elevated);
+  box-shadow: var(--shadow-nous);
+}
+/* The edge is an outline, not a shadow layer, so it never depends on a shadow token existing
+   (Tailwind theme shadows such as --shadow-sm are stripped from the host build). */
+.rk-card:focus-visible {
+  outline: 1px solid var(--foreground);
+  outline-offset: -1px;
+  background: var(--ui-bg-secondary);
+  box-shadow: var(--shadow-nous);
+}
+.rk-card[data-done='true'] {
+  background: color-mix(in srgb, var(--rk-done-tint) 8%, transparent);
+}
+.rk-card[data-done='true']:hover {
+  background: color-mix(in srgb, var(--rk-done-tint) 7%, var(--ui-bg-elevated));
+}
+.rk-card[data-done='true']:focus-visible {
+  background: color-mix(in srgb, var(--rk-done-tint) 15%, transparent);
+}
+.rk-card-title {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow-wrap: anywhere;
+  /* The card pins text left; a title follows its own direction (dir="auto"). */
+  text-align: start;
+  font-size: 0.84375rem;
+  line-height: 1.35;
+  color: var(--rk-text-primary);
+}
+.rk-card-meta {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.375rem;
+  font-size: 0.71875rem;
+  line-height: 1rem;
+  color: var(--rk-text-tertiary);
+}
+/* Owner, by fill: agent tasks take the accent tint, yours the neutral one. */
+.rk-owner {
+  display: inline-grid;
+  width: 1.125rem;
+  height: 1.125rem;
+  flex-shrink: 0;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--ui-bg-secondary);
+  color: var(--rk-text-primary);
+}
+.rk-owner[data-owner='agent'] {
+  background: color-mix(in srgb, var(--dt-primary) 14%, transparent);
+  color: var(--rk-accent-mark);
+}
+.rk-done-mark {
+  display: inline-grid;
+  width: 1.125rem;
+  height: 1.125rem;
+  flex-shrink: 0;
+  place-items: center;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--rk-done-tint) 18%, transparent);
+  color: var(--rk-done-mark);
+}
+.rk-card[data-done='true'] .rk-card-meta {
+  color: var(--rk-done-text);
+}
+.rk-card[data-done='true'] .rk-meta-end {
+  color: var(--rk-text-tertiary);
+}
+.rk-show-all {
+  align-self: flex-start;
+  padding: 0.25rem;
+  font-size: 0.78125rem;
+}
+.rk-due {
+  /* A pill stays one line when it fits and wraps inside the tile when it doesn't. */
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  border-radius: 999px;
+  background: var(--ui-bg-tertiary);
+  padding: 0.0625rem 0.4375rem;
+}
+.rk-due[data-tone='overdue'] {
+  /* Readable red text has to go pale on dark tiles, so the pill itself carries the red. */
+  background: var(--rk-danger-fill);
+  color: var(--rk-danger-text);
+}
+.rk-meta-end {
+  margin-left: auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  text-align: right;
+}
+
+/* A narrow split tile shows one column at a time and snaps between them. */
+@container rk-page (max-width: 36rem) {
+  .rk-board {
+    scroll-snap-type: x mandatory;
+  }
+  .rk-column {
+    flex: 0 0 auto;
+    width: calc(100cqw - 3.5rem);
+    max-width: none;
+    scroll-snap-align: start;
+  }
+}

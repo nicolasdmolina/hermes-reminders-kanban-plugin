@@ -1,0 +1,413 @@
+/* Task conversation (design option A). Host --ui-* / --dt-* tokens and the derived --rk-* tokens
+   from ui/src/theme/tokens.css only; the browser page maps the host tokens in dashboard.css. */
+
+/* Thread: core chat's anatomy (apps/desktop/src/components/assistant-ui/thread, styles.css).
+   Conversation type scales with the user's Chat Text Size, as in core's thread and composer. */
+.rk-tl-body,
+.rk-composer-wrap {
+  --conversation-text-font-size: calc(var(--conversation-text-base-size, 0.8125rem) * var(--chat-text-scale, 1));
+}
+.rk-tl-body {
+  gap: 1rem;
+}
+.rk-thread {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+/* Activity lines: core chat's transcript scaffolding (components/chat/scaffold-row.tsx), in the
+   Hermes column, on the same left edge as Hermes' messages (their label's indent): an optional
+   glyph cell, the label at the tool size in the scaffold step of the bounded ink ladder, tabular meta
+   one step quieter. The live
+   run shimmers (host .shimmer) beside core's breathing GlyphSpinner. Fallbacks cover the browser
+   page, whose host has none of these tokens. */
+.rk-activity {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.375rem;
+  padding-left: 0.75rem;
+  font-size: var(--conversation-tool-font-size, 0.6875rem);
+  line-height: var(--conversation-line-height, 1.125rem);
+  /* Core's scaffold ink (base at 64%) falls under 4.5:1 in some themes (Catppuccin light,
+     Everforest), so plugin text takes the bounded ladder's nearest step, per build-rules. */
+  color: var(--rk-text-tertiary);
+}
+.rk-activity-glyph {
+  display: grid;
+  width: 0.875rem;
+  height: 0.875rem;
+  flex-shrink: 0;
+  place-items: center;
+}
+.rk-activity-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rk-activity-meta {
+  flex-shrink: 0;
+  font-size: 0.625rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--rk-text-quaternary);
+}
+/* A pause or a hold (ticket 25) is the thing to read in its dialog: its live line takes primary
+   ink and the attention mark, still one quiet scaffold line. A Reminders wait stays quiet. */
+.rk-activity[data-live='paused'] .rk-activity-label,
+.rk-activity[data-live='notice'] .rk-activity-label,
+.rk-activity[data-live='held'] .rk-activity-label {
+  color: var(--rk-text-primary);
+}
+.rk-activity[data-live='paused'] .rk-activity-glyph,
+.rk-activity[data-live='notice'] .rk-activity-glyph,
+.rk-activity[data-live='held'] .rk-activity-glyph {
+  color: var(--rk-attention);
+}
+/* An earlier occurrence's run, grouped under its date line by one hairline. */
+.rk-tl-history {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-left: 0.75rem;
+  border-left: 1px solid var(--ui-stroke-tertiary);
+  padding-left: 0.25rem;
+}
+/* The time a line happened shows on hover or focus, like core's message times. */
+.rk-activity-time {
+  opacity: 0;
+  transition: opacity 100ms ease-out;
+}
+.rk-activity:hover .rk-activity-time,
+.rk-activity:focus-within .rk-activity-time {
+  opacity: 1;
+  transition: none;
+}
+
+
+.rk-msg {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.rk-msg:focus {
+  outline: none;
+}
+/* A small muted "Hermes · time" / "You · time" above each turn, aligned with its message. */
+.rk-msg-label {
+  font-size: 0.6875rem;
+  line-height: 1rem;
+  color: var(--rk-text-tertiary);
+}
+.rk-msg-hermes .rk-msg-label {
+  padding-left: 0.75rem;
+}
+.rk-msg-time {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+/* Hermes: plain left-aligned prose; the content slot gives core's indent and rhythm. */
+.rk-msg-prose {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--rk-text-primary);
+}
+.rk-msg-prose .aui-md,
+.rk-msg-prose .aui-md :where(p, li) {
+  color: inherit;
+}
+/* You: on the right, like a normal chat, in core's bordered user box hugging its text. */
+.rk-msg-you {
+  align-items: flex-end;
+}
+/* Faded while it sends, but still readable on every dashboard theme (0.7 fell under AA on a light one). */
+.rk-msg-you[data-pending='true'] .rk-user-bubble {
+  opacity: 0.82;
+}
+.rk-user-bubble {
+  max-width: 75%;
+  border: 1px solid var(--ui-stroke-tertiary);
+  border-radius: 0.2rem;
+  background: var(--dt-user-bubble);
+  padding: 0.5rem 0.75rem;
+  font-size: var(--conversation-text-font-size);
+  line-height: 1.3;
+  /* The bounded primary ink for a raised surface (tokens.css), so a theme whose foreground is a
+     bright accent still reads on the bubble. */
+  color: var(--rk-text-primary);
+  overflow-wrap: anywhere;
+}
+.rk-user-bubble .aui-md,
+.rk-user-bubble .aui-md :where(p, li) {
+  font-size: inherit;
+  line-height: inherit;
+  color: inherit;
+}
+.rk-user-bubble .aui-md :where(p) {
+  margin-block: var(--paragraph-gap, 0.7rem) 0;
+}
+.rk-user-bubble .aui-md > :first-child,
+.rk-user-bubble .aui-md > :first-child > :first-child {
+  margin-top: 0;
+}
+
+/* Notes and details: a toggle at the end of the header meta row; the notes open at the top of the
+   body, so the thread owns the rest of it. */
+.rk-tl-meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.375rem;
+}
+.rk-tl-details-toggle {
+  margin-left: auto;
+}
+.rk-tl-details-caret {
+  transition: transform 100ms ease-out;
+}
+.rk-tl-details-toggle[aria-expanded='true'] .rk-tl-details-caret {
+  transform: rotate(180deg);
+}
+.rk-tl-details-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  border-bottom: 1px solid var(--ui-stroke-tertiary);
+  padding-bottom: 1rem;
+  font-size: 0.75rem;
+  color: var(--rk-text-secondary);
+}
+
+/* Composer: core's chat bar (rounded-2xl surface, stroke-secondary border, card fill, 2.375rem
+   row, 1.625rem round send button with arrow-up). */
+.rk-composer-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+/* "Jump to latest": a small flat host button, centered just above the composer. */
+.rk-tl-jump {
+  display: flex;
+  justify-content: center;
+}
+.rk-tl-jump-foot {
+  padding-top: 0.5rem;
+}
+.rk-review-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.375rem;
+}
+.rk-composer-note {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  margin: 0 0.25rem;
+  font-size: 0.75rem;
+  line-height: 1.125rem;
+  color: var(--rk-text-secondary);
+}
+.rk-composer-note[data-tone='danger'] {
+  color: var(--rk-danger-text);
+}
+.rk-composer {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.25rem;
+  min-height: 2.5625rem;
+  border: 1px solid var(--ui-stroke-secondary);
+  border-radius: 0.3rem;
+  background: var(--rk-composer-fill);
+  padding: 0.3125rem 0.5rem;
+}
+.rk-composer-field {
+  min-width: 0;
+  flex: 1;
+  min-height: 1.8125rem;
+  max-height: 9.375rem;
+  field-sizing: content;
+  resize: none;
+  border: 0;
+  background: transparent;
+  padding: 0.25rem 0.25rem 0.25rem 0;
+  font: inherit;
+  font-size: var(--conversation-text-font-size);
+  line-height: normal;
+  color: var(--rk-text-primary);
+  outline: none;
+}
+/* The hint is the only cue for what typing here does: the bounded ink, never the host's
+   translucent step (build-rules: it falls under 4.5:1 in many themes). */
+.rk-composer-field::placeholder {
+  color: var(--rk-text-tertiary);
+}
+/* The field has no outline of its own: the box around it shows the focus. */
+.rk-composer:focus-within {
+  border-color: var(--rk-focus);
+}
+.rk-send {
+  display: inline-grid;
+  width: 1.625rem;
+  height: 1.625rem;
+  flex-shrink: 0;
+  place-items: center;
+  border: 0;
+  border-radius: 999px;
+  padding: 0;
+  background: var(--foreground);
+  color: var(--dt-background);
+  cursor: pointer;
+}
+.rk-send:hover:not(:disabled) {
+  background: var(--rk-send-hover);
+}
+/* Core's send button (PRIMARY_ICON_BTN): faded while there is nothing to send. Core's voice button
+   takes that slot in an empty composer; this composer has no voice, so it shows the send state. */
+.rk-send:disabled {
+  cursor: default;
+  background: var(--rk-send-disabled);
+}
+.rk-send:focus-visible {
+  outline: 2px solid var(--rk-focus);
+  outline-offset: 2px;
+}
+
+/* Occurrences, notices, problems, loading */
+.rk-tl-occurrences {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+.rk-tl-occurrence {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  color: var(--rk-text-secondary);
+}
+.rk-tl-occurrence select {
+  appearance: none;
+  border: 1px solid var(--ui-stroke-tertiary);
+  border-radius: 0.375rem;
+  background: transparent;
+  padding: 0.1875rem 1.5rem 0.1875rem 0.5rem;
+  font: inherit;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  color: inherit;
+  cursor: pointer;
+}
+.rk-tl-occurrence select:focus-visible {
+  outline: 2px solid var(--rk-focus);
+  outline-offset: 1px;
+}
+.rk-tl-occurrence > :last-child {
+  position: absolute;
+  right: 0.4rem;
+  pointer-events: none;
+}
+.rk-tl-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+.rk-tl-notice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: 0.625rem;
+  background: var(--rk-attention-fill);
+  padding: 0.5rem 0.75rem;
+  font-size: 0.78125rem;
+  color: var(--rk-text-primary);
+}
+.rk-tl-notice > span {
+  min-width: 10rem;
+  flex: 1;
+}
+.rk-tl-problem {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.375rem;
+}
+.rk-tl-problem-icon {
+  color: var(--rk-text-tertiary);
+}
+.rk-tl-problem h2 {
+  margin: 0.25rem 0 0;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--rk-text-primary);
+}
+.rk-tl-problem p {
+  margin: 0;
+  max-width: 46ch;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--rk-text-secondary);
+}
+.rk-tl-problem-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+.rk-tl-loading {
+  display: grid;
+  place-items: center;
+  padding: 2rem 0;
+}
+.rk-tl-loader {
+  width: 2rem;
+  height: 2rem;
+  color: var(--rk-text-tertiary);
+}
+
+/* Board entry point: a round mark in the tile meta row, beside the owner mark. */
+.rk-tl-mark {
+  display: inline-grid;
+  width: 1.125rem;
+  height: 1.125rem;
+  flex-shrink: 0;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--rk-agent-fill);
+  color: var(--rk-agent);
+}
+
+.rk-dash-glyph-spinner {
+  display: inline-grid;
+  place-items: center;
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+.rk-composer-model {
+  display: flex;
+  min-width: 0;
+  max-width: min(50%, 24rem);
+}
+.rk-composer-model .rk-model-trigger {
+  height: var(--composer-control-size, 1.5rem);
+  max-width: 100%;
+  border-radius: 0.375rem;
+  padding: 0 0.5rem;
+  font-size: 0.75rem;
+  color: var(--rk-text-tertiary);
+}
+.rk-composer-model .rk-model-trigger:hover {
+  background: var(--chrome-action-hover);
+  color: var(--rk-text-primary);
+}
+.rk-composer-model .rk-model {
+  max-width: 100%;
+}

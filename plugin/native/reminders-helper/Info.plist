@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+<key>CFBundleIdentifier</key><string>com.nickymolina.reminders-kanban.access-probe</string>
+<key>CFBundleName</key><string>RK Reminders Helper</string>
+<key>CFBundleExecutable</key><string>reminders-helper</string>
+<key>CFBundlePackageType</key><string>APPL</string>
+<key>LSUIElement</key><true/>
+<key>NSRemindersFullAccessUsageDescription</key><string>Reminders Kanban reads and edits reminders in your selected lists.</string>
+<key>NSRemindersUsageDescription</key><string>Reminders Kanban reads and edits reminders in your selected lists.</string>
+</dict></plist>

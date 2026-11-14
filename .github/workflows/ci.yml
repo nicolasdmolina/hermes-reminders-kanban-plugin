@@ -1,0 +1,45 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  source-and-package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.11"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: ui/package-lock.json
+      - run: uv sync --locked
+      - run: uv run ruff check .
+      - run: uv run pytest
+      - run: npm ci && npm run check
+        working-directory: ui
+      - name: Compare the public install tree with rebuilt sources
+        if: hashFiles('plugin/plugin.yaml') != ''
+        run: python3 scripts/package-plugin --check plugin
+      - name: Stage a fresh install tree
+        run: python3 scripts/package-plugin "$RUNNER_TEMP/reminders-kanban"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: reminders-kanban-plugin
+          path: ${{ runner.temp }}/reminders-kanban
+          if-no-files-found: error
+
+  native-helper:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile without requesting Reminders access
+        run: RK_COMPILE_ONLY=1 native/reminders-helper/build.sh "$RUNNER_TEMP/helper"

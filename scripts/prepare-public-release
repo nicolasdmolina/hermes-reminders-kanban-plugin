@@ -1,0 +1,75 @@
+#!/usr/bin/env python3
+"""Export public editable sources and build their plugin/ install directory."""
+
+import argparse
+import runpy
+import shutil
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+FIXED_FILES = (
+    "README.md", "LICENSE", "THIRD_PARTY_NOTICES.md", "licenses/codicons.txt",
+    ".gitignore", "pyproject.toml", "uv.lock",
+    "plugin.yaml", "__init__.py", "dashboard/plugin_api.py", "dashboard/manifest.json",
+    "ui/package.json", "ui/package-lock.json", "ui/build.mjs",
+    "scripts/package-plugin", "scripts/prepare-public-release",
+    "docs/installation.md", "docs/development.md", ".github/workflows/ci.yml",
+)
+SOURCE_TREES = (
+    ("reminders_kanban", {".py"}),
+    ("native/reminders-helper", {".swift", ".plist", ".sh"}),
+    ("ui/src", {".js", ".jsx", ".css"}),
+    ("ui/test", {".js"}),
+    ("tests", {".py"}),
+)
+EXCLUDED_TESTS = {"test_execution_host.py", "admission_host_contract.py"}
+
+
+def source_files(root=ROOT):
+    files = {Path(name) for name in FIXED_FILES}
+    for directory, suffixes in SOURCE_TREES:
+        for path in (root / directory).rglob("*"):
+            if path.suffix not in suffixes or "__pycache__" in path.parts:
+                continue
+            if directory == "tests" and (
+                path.name.endswith("_live.py") or path.name in EXCLUDED_TESTS
+            ):
+                continue
+            files.add(path.relative_to(root))
+    for name in ("board.png", "setup.png"):
+        image = Path("docs/media") / name
+        if (root / image).is_file():
+            files.add(image)
+    for path in files:
+        if not (root / path).is_file() or (root / path).is_symlink():
+            raise ValueError(f"missing or symlinked public source: {path}")
+    return sorted(files)
+
+
+def prepare(destination, *, root=ROOT):
+    if root.resolve().is_relative_to(destination.resolve()) or (
+        destination.resolve().is_relative_to(root.resolve())
+    ):
+        raise ValueError("public destination must be outside the source checkout")
+    files = source_files(root)
+    destination.mkdir(parents=True, exist_ok=False)
+    for path in files:
+        target = destination / path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(root / path, target)
+        target.chmod(0o755 if (root / path).stat().st_mode & 0o111 else 0o644)
+    packager = runpy.run_path(str(destination / "scripts/package-plugin"))
+    packager["build"](destination)
+    packager["package"](destination / "plugin", root=destination)
+    packager["check_package"](destination / "plugin", root=destination)
+    return destination
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("destination", type=Path, help="new directory outside this checkout")
+    args = parser.parse_args()
+    try:
+        print(prepare(args.destination))
+    except (ValueError, FileExistsError) as error:
+        parser.exit(1, f"{error}\n")

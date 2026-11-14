@@ -1,0 +1,479 @@
+/* Editor: create/edit forms, card actions, drag states and move reasons.
+   Colors come from host tokens only; motion respects reduced motion. */
+/* ── forms ─────────────────────────────────────────────────────────────── */
+.rk-form {
+  container: rk-form / inline-size;
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  color: var(--foreground);
+}
+.rk-form-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem 1.25rem 0.25rem;
+}
+.rk-form-kind {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--rk-text-tertiary);
+}
+.rk-form-close {
+  margin-left: auto;
+}
+.rk-form-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.5rem 1.25rem 0;
+  border-radius: 0.375rem;
+  background: var(--ui-bg-quinary);
+  padding: 0.375rem 0.5rem 0.375rem 0.75rem;
+  font-size: 0.75rem;
+  line-height: 1.125rem;
+  color: var(--foreground);
+}
+.rk-form-banner > span {
+  flex: 1;
+  min-width: 0;
+}
+.rk-form-banner[data-tone='warn'] {
+  background: var(--rk-attention-fill);
+}
+.rk-form-banner[data-tone='info'] {
+  background: color-mix(in srgb, var(--dt-primary) 10%, transparent);
+}
+.rk-form-head {
+  padding: 0.5rem 1.25rem 0.75rem;
+}
+/* Edit uses the task dialog's header (ui/src/task/shell.jsx), inset to line up with the fields,
+   and its hairline replaces the body's top border. The title field takes the dialog title's size. */
+.rk-form[data-head='task'] .rk-head {
+  padding: 1.375rem 1.25rem 0.875rem;
+}
+.rk-form[data-head='task'] .rk-form-body {
+  border-top: 0;
+}
+.rk-form-titlefield .rk-form-title {
+  font-size: 1.1875rem;
+  line-height: 1.3;
+}
+.rk-form-title {
+  all: unset;
+  box-sizing: border-box;
+  display: block;
+  width: calc(100% + 0.75rem);
+  margin: 0 -0.375rem;
+  border-radius: 0.25rem;
+  padding: 0.125rem 0.375rem;
+  font-size: 1.0625rem;
+  font-weight: 600;
+  line-height: 1.5rem;
+  color: var(--foreground);
+  overflow-wrap: anywhere;
+}
+.rk-form-title::placeholder {
+  color: var(--rk-text-quaternary);
+}
+.rk-form-title:focus-visible {
+  background: var(--ui-control-hover-background, var(--ui-bg-quinary));
+}
+.rk-form-title:disabled {
+  cursor: default;
+  color: var(--foreground);
+}
+.rk-form-title[aria-invalid='true'] {
+  box-shadow: 0 0 0 1px var(--dt-destructive);
+}
+.rk-form-body {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  border-top: 1px solid var(--ui-stroke-tertiary);
+}
+.rk-form-main {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  overflow-y: auto;
+  padding: 1rem 1.25rem 1.25rem;
+}
+.rk-form-notes {
+  min-height: 9rem;
+  flex: 1;
+  resize: vertical;
+  line-height: 1.55;
+}
+.rk-form-side {
+  display: flex;
+  width: 16rem;
+  flex-shrink: 0;
+  flex-direction: column;
+  gap: 1rem;
+  overflow-y: auto;
+  border-left: 1px solid var(--ui-stroke-tertiary);
+  padding: 1rem 1.25rem 1.25rem;
+}
+.rk-form-field {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: stretch;
+}
+.rk-form-due {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.375rem;
+}
+.rk-form-clear {
+  align-self: flex-start;
+  margin-top: 0.375rem;
+  font-size: 0.6875rem;
+  /* The host text button's ink falls under 4.5:1 in several themes; use the bounded ladder. */
+  color: var(--rk-text-secondary);
+}
+.rk-form-clear:hover {
+  color: var(--rk-text-primary);
+}
+.rk-form-existing {
+  margin-bottom: 0.625rem;
+  max-height: 12rem;
+  overflow-y: auto;
+}
+.rk-form-locked {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin: 0.375rem 0 0;
+  font-size: 0.6875rem;
+  line-height: 1rem;
+  color: var(--rk-text-tertiary);
+}
+.rk-form-static {
+  font-size: 0.75rem;
+  line-height: 1.125rem;
+  color: var(--foreground);
+}
+.rk-form-error {
+  margin: 0.375rem 0 0;
+  font-size: 0.6875rem;
+  line-height: 1rem;
+  color: var(--rk-danger-text);
+}
+.rk-form-theirs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 0.5rem;
+  margin: 0.375rem 0 0;
+  font-size: 0.6875rem;
+  line-height: 1rem;
+  color: var(--rk-text-tertiary);
+  overflow-wrap: anywhere;
+}
+.rk-form-theirs q {
+  color: var(--foreground);
+}
+.rk-form-foot {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  border-top: 1px solid var(--ui-stroke-tertiary);
+  padding: 0.75rem 1.25rem;
+}
+.rk-form-outcome {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: baseline;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  line-height: 1.125rem;
+  color: var(--foreground);
+}
+.rk-form-outcome > span {
+  min-width: 0;
+  text-wrap: pretty;
+}
+.rk-form-outcome > .codicon {
+  flex-shrink: 0;
+  transform: translateY(0.1rem);
+}
+.rk-form-outcome > button {
+  flex-shrink: 0;
+}
+.rk-form-outcome[data-tone='error'] > .codicon {
+  color: var(--rk-danger-text);
+}
+.rk-form-outcome[data-tone='warn'] > .codicon {
+  color: var(--rk-attention);
+}
+.rk-form-actions {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 0.375rem;
+  margin-left: auto;
+}
+.rk-form-gone,
+.rk-labels-help {
+  margin: 0;
+  padding: 0.25rem 1.25rem 1rem;
+  font-size: 0.75rem;
+  line-height: 1.125rem;
+  color: var(--rk-text-tertiary);
+}
+.rk-form-kept {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0 1.25rem 1.25rem;
+}
+.rk-form-kept-label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--rk-text-secondary);
+}
+.rk-form-kept-text {
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.25rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  user-select: text;
+  color: var(--rk-text-primary);
+}
+.rk-labels-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 0 1.25rem 1.25rem;
+}
+
+@container rk-form (max-width: 34rem) {
+  .rk-form[data-head='task'] .rk-head {
+    padding-top: 1.125rem;
+    padding-bottom: 0.75rem;
+  }
+  .rk-form-body {
+    flex-direction: column;
+    overflow-y: auto;
+  }
+  .rk-form-main,
+  .rk-form-side {
+    overflow: visible;
+  }
+  .rk-form-side {
+    width: auto;
+    border-left: 0;
+    border-top: 1px solid var(--ui-stroke-tertiary);
+  }
+  .rk-form-foot {
+    flex-wrap: wrap;
+  }
+}
+
+/* ── task dialog actions ───────────────────────────────────────────────── */
+.rk-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem;
+}
+.rk-card-actions > button {
+  color: var(--rk-text-primary);
+}
+
+/* ── board: drag, pending, reasons ────────────────────────────────────── */
+/* Cards' places are measured inside their column (motion.js), so the column is their frame. */
+.rk-column-body {
+  position: relative;
+}
+.rk-card-slot {
+  position: relative;
+  display: flex;
+  flex-shrink: 0;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.rk-card[data-pending='true'] .rk-card-title {
+  opacity: 0.75;
+}
+.rk-card-spinner {
+  margin-left: auto;
+  color: var(--rk-text-tertiary);
+}
+.rk-card[data-dragging='true'] {
+  opacity: 0.4;
+  outline: 1px dashed var(--ui-stroke-secondary);
+  outline-offset: -1px;
+  background: transparent;
+  box-shadow: none;
+}
+:root[data-rk-dragging] {
+  cursor: grabbing;
+}
+:root[data-rk-dragging] * {
+  cursor: inherit !important;
+  user-select: none;
+}
+.rk-column {
+  transition: background-color 120ms ease-out, box-shadow 120ms ease-out;
+}
+.rk-column[data-drop='ok'] {
+  background: var(--ui-bg-quinary);
+}
+.rk-column[data-drop='refused'] {
+  background: color-mix(in srgb, var(--ui-bg-quinary) 50%, transparent);
+  box-shadow: inset 0 0 0 1px var(--ui-stroke-tertiary);
+}
+:root[data-rk-dragging] .rk-column[data-drop='refused'] {
+  cursor: not-allowed;
+}
+.rk-drop-reason {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  margin: 0 0 0.375rem;
+  border-radius: 0.375rem;
+  background: var(--ui-bg-quaternary);
+  padding: 0.25rem 0.5rem;
+  font-size: 0.6875rem;
+  line-height: 1rem;
+  color: var(--foreground);
+}
+
+.rk-card-notice {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  border-radius: 0.375rem;
+  background: var(--ui-bg-quaternary);
+  padding: 0.25rem 0.25rem 0.25rem 0.5rem;
+  font-size: 0.6875rem;
+  line-height: 1rem;
+  color: var(--foreground);
+}
+.rk-card-notice > span {
+  flex: 1;
+  min-width: 0;
+}
+.rk-card-notice[data-tone='warn'] > .codicon {
+  color: var(--rk-attention);
+}
+.rk-card-notice[data-tone='error'] {
+  background: color-mix(in srgb, var(--dt-destructive) 12%, var(--ui-bg-quaternary));
+}
+.rk-card-notice[data-tone='error'] > .codicon {
+  color: var(--rk-danger-text);
+}
+.rk-card-notice-action,
+.rk-card-notice-close {
+  all: unset;
+  cursor: pointer;
+  border-radius: 0.25rem;
+  padding: 0 0.25rem;
+  font-weight: 600;
+  color: var(--foreground);
+}
+.rk-card-notice-close {
+  display: grid;
+  place-items: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  padding: 0;
+  color: var(--rk-text-tertiary);
+}
+.rk-card-notice-action:hover,
+.rk-card-notice-close:hover {
+  color: var(--foreground);
+}
+.rk-card-notice-action:focus-visible,
+.rk-card-notice-close:focus-visible {
+  outline: 1px solid var(--foreground);
+  outline-offset: -1px;
+  color: var(--foreground);
+}
+
+.rk-ghost {
+  --rk-lift-shadow: var(--shadow-md);
+  position: fixed;
+  z-index: 60;
+  pointer-events: none;
+  will-change: transform;
+}
+.rk-ghost-card {
+  width: 100%;
+  background: var(--ui-bg-elevated);
+  transform: scale(1.03);
+  box-shadow: var(--rk-lift-shadow);
+  cursor: grabbing;
+}
+/* A card travelling after a keyboard move or rollback is not held, so it isn't lifted. */
+.rk-ghost-card[data-flat='true'] {
+  background: var(--ui-bg-card);
+  transform: none;
+  box-shadow: none;
+}
+.rk-ghost-card[data-flat='true'][data-done='true'] {
+  background: color-mix(in srgb, var(--rk-done-tint) 8%, var(--ui-bg-card));
+}
+
+.rk-unsure {
+  position: absolute;
+  right: 1rem;
+  bottom: 1rem;
+  left: 1rem;
+  z-index: 20;
+  display: flex;
+  width: max-content;
+  margin: 0 auto;
+  max-width: calc(100% - 2rem);
+  align-items: center;
+  gap: 0.5rem;
+  border: 1px solid var(--ui-stroke-tertiary);
+  border-radius: 0.5rem;
+  background: var(--ui-bg-elevated);
+  padding: 0.375rem 0.375rem 0.375rem 0.75rem;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  color: var(--foreground);
+  box-shadow: var(--shadow-md);
+}
+.rk-unsure > .codicon {
+  color: var(--rk-danger-text);
+}
+.rk-unsure-text {
+  min-width: 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .rk-card-notice {
+    animation: rk-notice-in 200ms cubic-bezier(0.2, 0.8, 0.3, 1.1) both;
+  }
+  .rk-card[data-just-created='true'] {
+    animation: rk-created 1200ms ease-out both;
+  }
+}
+@keyframes rk-notice-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+}
+@keyframes rk-created {
+  0% {
+    background-color: var(--ui-control-active-background, var(--ui-bg-quaternary));
+  }
+}
+
+/* A narrow tile snaps one lane at a time, which would pull the board back while a drag scrolls it
+   toward a lane further along. */
+:root[data-rk-dragging] .rk-board {
+  scroll-snap-type: none;
+}
