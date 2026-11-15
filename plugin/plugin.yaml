@@ -1,4 +1,5 @@
 manifest_version: 1
 name: reminders-kanban
-version: 0.1.0-beta.1
-description: "Kanban board for Apple Reminders with delegation to Hermes."
+version: 0.1.0-beta.2
+requires_hermes: ">=0.23.1"
+description: "Apple Reminders as a Kanban board in Hermes Desktop. Experimental macOS preview."

@@ -199,6 +199,15 @@ const RESOLVED = new Set([
 ])
 
 /**
+ * A draft kept after its form closed. "Hermes can't read Reminders" was about that save:
+ * access may be back by the time the form opens again, and Save says it again if not.
+ */
+export function keptDraft(state) {
+  if (state?.outcome?.status !== 'access_denied' || state.pending) return state
+  return { ...state, outcome: null }
+}
+
+/**
  * Presentation for a /human/actions result, or for a thrown transport error that
  * `classifyError` turned into `{ kind }`.
  *

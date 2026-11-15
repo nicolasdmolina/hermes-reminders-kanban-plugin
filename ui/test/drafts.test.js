@@ -229,3 +229,16 @@ test('a space before an agent label does not slip it past the title check', () =
   assert.equal(validateDraft({ ...spaced, notes: 'more' }, { mode: 'edit', base: spaced, labels }).title, undefined)
   assert.match(validateDraft({ ...spaced, title: ' [Agent] Book flights' }, { mode: 'edit', base: spaced, labels }).title, /agent tasks/)
 })
+
+test("a kept draft reopens without an old \"can't read Reminders\" message; other outcomes and pending saves stay", async () => {
+  const { describeOutcome, keptDraft } = await import('../src/lib/drafts.js')
+  const draft = { title: 'Prepare slides and send the deck' }
+  const denied = { draft, outcome: describeOutcome({ status: 'access_denied' }) }
+  assert.match(denied.outcome.message, /can't read Reminders/)
+  assert.deepEqual(keptDraft(denied), { draft, outcome: null }, 'the typed text stays')
+  const conflict = { draft, outcome: describeOutcome({ status: 'conflict' }) }
+  assert.equal(keptDraft(conflict), conflict, 'a conflict is about the draft itself, so it stays')
+  const sending = { ...denied, pending: { operation_id: 'op' } }
+  assert.equal(keptDraft(sending), sending)
+  assert.equal(keptDraft(undefined), undefined, 'a discarded draft is not brought back')
+})

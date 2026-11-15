@@ -12,6 +12,7 @@ import { useDelegation } from '../delegation/useDelegation.js'
 import { EditorCardActions, EditorHeaderActions, EditorLayer } from '../editor/Editor.jsx'
 import { useEditor } from '../editor/useEditor.js'
 import { selectedListNames, setTitleLabels, splitTitle } from '../lib/cards.js'
+import { BOARD_FOCUS, focusLeftBehind, refocus } from '../lib/focus.js'
 import { keepAgentOrder } from '../lib/placement.js'
 import { holdQueued, isStale, QUEUED_CHECKING, QUEUED_PICKUP_OFF, QUEUED_STALE, listsWithWork, startableReady } from '../lib/reconciliation.js'
 import { deriveView, NOTICES, PROBLEMS } from '../lib/state.js'
@@ -92,11 +93,24 @@ function BoardScreen({ data }) {
     if (view.checking) return
     lastScreen.current = view.screen
     if (view.screen !== 'board' || from === 'board') return
-    const active = document.activeElement
-    if (active && active !== document.body && active.isConnected) return
-    const target = document.querySelector('.rk-lists-trigger:not(:disabled)') ?? document.querySelector('.rk-card')
-    target?.focus({ preventScroll: true })
+    refocus(document, ['.rk-lists-trigger', '.rk-card'])
   }, [view.screen, view.checking])
+  // Refresh and Check again are disabled while Reminders answers, and Check again goes with its
+  // notice when access is back: either way focus would fall to the page. Once the answer is in,
+  // it goes back to the pressed button, or to what replaced it.
+  const refocusAfter = useRef(null)
+  const refreshFrom = event => {
+    refocusAfter.current = { from: event?.currentTarget ?? null, until: 0 }
+    return data.refresh()
+  }
+  useEffect(() => {
+    const pending = refocusAfter.current
+    if (!pending) return
+    if (data.previewPending) return void (pending.until = 0)
+    pending.until ||= Date.now() + 3000
+    if (view.screen !== 'board' || Date.now() > pending.until) return void (refocusAfter.current = null)
+    refocus(document, pending.from?.isConnected ? [pending.from, ...BOARD_FOCUS] : BOARD_FOCUS)
+  })
   // Delegated work sits where its Hermes task is (lib/placement.js), not where its title puts it.
   const placed = useMemo(
     () => holdQueued(recurring.place(envelope?.cards, delegation.live), queuedHold),
@@ -164,9 +178,11 @@ function BoardScreen({ data }) {
     })
   }
 
-  // Radix returns focus only to a DialogTrigger; put it back on the card that opened the dialog.
+  // Radix returns focus only to a DialogTrigger; put it back on the card that opened the dialog
+  // (unless a control outside it has focus by the time Radix reports the close).
   const restoreCardFocus = event => {
     event.preventDefault()
+    if (!focusLeftBehind(event, document)) return
     const card = openId && document.querySelector(`[data-card-id="${CSS.escape(openId)}"]`)
     ;(card || document.querySelector('.rk-card'))?.focus()
   }
@@ -174,6 +190,7 @@ function BoardScreen({ data }) {
   // A task with no card (opened from "N need you", a notice or a notification): back to that chip.
   const restoreChipFocus = event => {
     event.preventDefault()
+    if (!focusLeftBehind(event, document)) return
     ;(document.querySelector('button.rk-attn-chip') ?? document.querySelector('.rk-card'))?.focus()
   }
 
@@ -183,6 +200,7 @@ function BoardScreen({ data }) {
   const formOpener = useRef(null)
   const restoreFormFocus = event => {
     event.preventDefault()
+    if (!focusLeftBehind(event, document)) return
     const id = editor.form?.cardId
     const opener = editor.form?.mode === 'labels' ? '[aria-label="Title labels"]' : '[data-rk-new]'
     const from = formOpener.current?.isConnected && !formOpener.current.disabled ? formOpener.current : null
@@ -202,7 +220,7 @@ function BoardScreen({ data }) {
       // While the board can't be read (Hermes unreachable), the picker can't open: say so by disabling, not by opening it minutes later.
       listsDisabled={deriveView({ ...data, reviewing, choosing: true }).screen === 'board'}
       onChangeLists={() => setChoosing(true)}
-      onRefresh={data.refresh}
+      onRefresh={refreshFrom}
       pending={data.previewPending}
       pickup={<PickupControl delegation={delegation} fallbackReady={startableReady(view.screen === 'board' ? cards : envelope?.cards)} />}
       showBoardControls={view.screen === 'board'}
@@ -279,7 +297,7 @@ function BoardScreen({ data }) {
           formOpener.current = event.currentTarget
           editor.openCreate()
         }}
-        onRefresh={data.refresh}
+        onRefresh={refreshFrom}
         pending={data.previewPending}
       />
       {!view.notice && <ReconnectNotice onOpen={openFinding} reconnect={reconnect} />}

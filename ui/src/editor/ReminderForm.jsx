@@ -29,6 +29,7 @@ import {
   editFields,
   emptyDraft,
   FIELD_NAMES,
+  keptDraft,
   PRIORITIES,
   rebaseDraft,
   sourceChanges,
@@ -211,8 +212,9 @@ function Form({ editor, mode, card, lists, labels, onClose, storeKey }) {
   useEffect(
     () => () => {
       if (untouched.current) discard()
+      else setState(keptDraft)
     },
-    [discard]
+    [discard, setState]
   )
   // A field this card can't edit here says so in place, instead of disappearing.
   const lockNote = field =>

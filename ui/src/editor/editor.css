@@ -276,6 +276,10 @@
   .rk-form-foot {
     flex-wrap: wrap;
   }
+  /* A message gets its own row above the buttons instead of a word-per-line column beside them. */
+  .rk-form-outcome:not(:empty) {
+    flex-basis: 100%;
+  }
 }
 
 /* ── task dialog actions ───────────────────────────────────────────────── */

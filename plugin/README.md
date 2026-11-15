@@ -18,7 +18,13 @@ The source implements questions, result review, retry, task links, and delegatio
 
 ## Install
 
-Read the [installation guide](docs/installation.md) for prerequisites, local helper setup, and host compatibility. The installable package is the `plugin/` subdirectory of this repository. Use the pinned command in the GitHub release notes. The repository root contains editable source and development dependencies. Install `plugin/`, not the repository root.
+Requires Hermes 0.23.1 or later. Install from the Hermes plugin catalog:
+
+```sh
+hermes plugins install reminders-kanban --enable
+```
+
+Read the [installation guide](docs/installation.md) for prerequisites, local helper setup, and host compatibility. To install straight from GitHub, use the pinned command in the release notes. The installable package is the `plugin/` subdirectory of this repository; the repository root contains editable source and development dependencies.
 
 ## Data and background work
 

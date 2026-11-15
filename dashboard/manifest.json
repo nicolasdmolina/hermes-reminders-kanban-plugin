@@ -1,8 +1,8 @@
 {
   "name": "reminders-kanban",
   "label": "Reminders Kanban",
-  "description": "Kanban board for Apple Reminders with delegation to Hermes.",
-  "version": "0.1.0-beta.1",
+  "description": "Apple Reminders as a Kanban board in Hermes Desktop. Experimental macOS preview.",
+  "version": "0.1.0-beta.2",
   "tab": {
     "path": "/reminders",
     "hidden": true

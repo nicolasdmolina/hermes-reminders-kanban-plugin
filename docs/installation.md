@@ -4,20 +4,27 @@ This preview includes the source and a built plugin package. Fresh-account signi
 
 ## Check prerequisites
 
-Use macOS 14 or later with Hermes Desktop and Xcode command-line tools. Run `xcode-select --install` if `swiftc` is unavailable. Installation and Desktop checks for this preview use Hermes source revision `2a47b7e2f12e650df6d5d10ed390d736b4891d09`. Other host revisions require their own compatibility checks.
+Use macOS 14 or later with Hermes Desktop and Xcode command-line tools. Run `xcode-select --install` if `swiftc` is unavailable. Use Hermes 0.23.1 or later. The plugin declares that minimum, and Hermes refuses to load it on older versions.
 
 Delegation needs a Hermes release with board-scoped execution support. That capability is not in the released host yet. Until a compatible host is available, treat delegation as unavailable. Changing global Kanban dispatcher settings is not a supported installation step.
 
 The release repository contains source at its root and the built package under `plugin/`. Hermes must load the package directory containing `plugin.yaml`, `desktop/plugin.js`, and `dashboard/plugin_api.py`. Do not install the development root, which contains a `pyproject.toml` for source tests.
 
-Copy the exact install command from the GitHub release notes. It pins a full commit SHA and selects the package subdirectory. The command has this form:
+Install from the Hermes plugin catalog, which pins the reviewed commit:
+
+```sh
+hermes plugins install reminders-kanban --enable
+hermes plugins doctor reminders-kanban
+```
+
+To install a specific GitHub release instead, copy the exact command from its release notes. It pins a full commit SHA and selects the package subdirectory. The command has this form:
 
 ```sh
 hermes plugins install 'nicolasdmolina/hermes-reminders-kanban-plugin#plugin' --ref <full-release-commit-sha> --enable --yes-deps
 hermes plugins doctor reminders-kanban
 ```
 
-Replace `<full-release-commit-sha>` with the published release's full 40-character commit SHA. The command requires a Hermes version that supports repository subdirectories. This preview is distributed directly from GitHub. Catalog submission is pending the supported Hermes integration. Enable the Desktop half in **Capabilities > Plugins**. Rescan if the Desktop bundle has not appeared.
+Replace `<full-release-commit-sha>` with the published release's full 40-character commit SHA. Enable the Desktop half in **Capabilities > Plugins**. Rescan if the Desktop bundle has not appeared.
 
 ## Allow the native helper
 
