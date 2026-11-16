@@ -22,7 +22,7 @@ SOURCE_TREES = (
     ("ui/test", {".js"}),
     ("tests", {".py"}),
 )
-EXCLUDED_TESTS = {"test_execution_host.py", "admission_host_contract.py"}
+EXCLUDED_TESTS = {"fake_llm.py"}  # only the opt-in live proof uses it
 
 
 def source_files(root=ROOT):

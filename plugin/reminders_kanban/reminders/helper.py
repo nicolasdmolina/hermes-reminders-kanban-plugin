@@ -55,8 +55,9 @@ def _verify(app, identity=None):
         if "Signature=adhoc" in signed.stderr or "Authority=" not in signed.stderr:
             raise HelperError("signing_required", "Helper requires a persistent signing identity")
         if identity:
-            subprocess.run(["codesign", "--verify", "--strict", "-R",
-                            f'certificate leaf = H"{identity}"', str(app)],
+            # "-R=<text>" is a requirement; a bare "-R <text>" is read as a file path.
+            subprocess.run(["codesign", "--verify", "--strict",
+                            f'-R=certificate leaf = H"{identity}"', str(app)],
                            check=True, capture_output=True, timeout=20)
     except (OSError, subprocess.SubprocessError) as exc:
         raise HelperError("signing_required", "Prepare Reminders access again") from exc

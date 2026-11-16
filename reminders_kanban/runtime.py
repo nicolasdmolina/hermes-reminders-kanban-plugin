@@ -13,25 +13,13 @@ NAME = "reminders-kanban"
 
 
 def board_for(home):
-    # Hermes Kanban boards are shared across profiles, unlike our state stores.
-    # Keep the existing default board and give each named profile its own board.
+    # The store's identity, recorded with each delegated reminder. Each profile has its own.
     home = Path(home).resolve()
     return (
         NAME
         if home.parent.name != "profiles"
         else (NAME + "-" + hashlib.sha256(str(home).encode()).hexdigest()[:12])
     )
-
-
-def ensure_board(home):
-    from hermes_cli import kanban_db as kb
-
-    board = board_for(home)
-    if not kb.kanban_db_path(board=board).exists():
-        if kb.read_board_metadata(board).get("archived"):
-            raise ValueError("plugin board is archived")
-        kb.create_board(board)
-    return board
 
 
 def permitted(config):
@@ -119,7 +107,14 @@ def register(ctx):
     from hermes_cli.config import load_config_readonly
     from hermes_constants import get_hermes_home
 
-    if os.environ.get("HERMES_SESSION_SOURCE") == "kanban" or not permitted(load_config_readonly()):
+    from reminders_kanban.execution import tools
+
+    tools.register(ctx)  # Runs already started hand back even with unattended passes off.
+    if not permitted(load_config_readonly()):
+        return
+    # A scheduled run's own process and Kanban workers load plugins too; they keep no timer.
+    if (os.environ.get("_HERMES_CRON_WORKER_BOOT") or os.environ.get("_HERMES_CRON_EXTERNAL_WORKER")
+            or os.environ.get("HERMES_SESSION_SOURCE") == "kanban"):
         return
     ticker = Ticker(get_hermes_home().resolve(), load_config_readonly)
     ctx.on_unload(ticker.stop)

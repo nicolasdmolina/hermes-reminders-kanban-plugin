@@ -91,7 +91,6 @@
 .rk-pill,
 .rk-meta-pill,
 .rk-user-bubble,
-.rk-sheet,
 .rk-composer {
   --rk-ink-lo: 0;
   --rk-ink-hi: 0.43;
@@ -102,12 +101,10 @@
 :root.dark .rk-pill,
 :root.dark .rk-meta-pill,
 :root.dark .rk-user-bubble,
-:root.dark .rk-sheet,
 :root.dark .rk-composer,
 .rk-dash[data-mode='dark'] .rk-pill,
 .rk-dash[data-mode='dark'] .rk-meta-pill,
 .rk-dash[data-mode='dark'] .rk-user-bubble,
-.rk-dash[data-mode='dark'] .rk-sheet,
 .rk-dash[data-mode='dark'] .rk-composer {
   --rk-ink-lo: 0.84;
   --rk-ink-hi: 1;
@@ -147,7 +144,6 @@
 .rk-pill,
 .rk-meta-pill,
 .rk-user-bubble,
-.rk-sheet,
 .rk-composer,
 .rk-view-trigger,
 .rk-view-action,

@@ -110,12 +110,15 @@ def test_new_certificate_private_material_is_confined_and_removed(local, monkeyp
     keychain = local / "login.keychain-db"
     keychain.touch()
     monkeypatch.setattr(setup, "_login_keychain", lambda: keychain)
-    calls = []
+    calls, passphrases = [], []
 
     def command(args, **kw):
         calls.append(args)
         if args[0] == "/usr/bin/openssl":
-            return subprocess.run(args, capture_output=True, text=True, check=True, timeout=60)
+            if "pkcs12" in args:
+                passphrases.append(kw["env"]["RK_ARCHIVE_PASSPHRASE"])
+            return subprocess.run(args, capture_output=True, text=True, check=True, timeout=60,
+                                  env=kw.get("env"))
         assert args[0] == "/usr/bin/security"
         if args[1] == "find-certificate":
             return subprocess.CompletedProcess(args, 44, "")
@@ -126,7 +129,11 @@ def test_new_certificate_private_material_is_confined_and_removed(local, monkeyp
         assert archive.parent.stat().st_mode & 0o777 == 0o700
         assert args[args.index("-T") + 1] == "/usr/bin/codesign"
         assert "-A" not in args and "-x" in args
-        assert args[args.index("-P") + 1] == ""
+        # macOS 26 refuses an empty archive password. The one-time one reaches openssl
+        # through its environment and only the import that reads the archive back.
+        assert len(passphrases[0]) >= 24
+        assert args[args.index("-P") + 1] == passphrases[0]
+        assert passphrases[0] not in json.dumps(calls[:-1])
         if fail_import:
             raise subprocess.TimeoutExpired(args, 60)
         return subprocess.CompletedProcess(args, 0, "")

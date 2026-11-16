@@ -1,55 +1,131 @@
-import sqlite3
-from types import SimpleNamespace
+"""Ordered, bounded starts over the plugin's own store with a stand-in scheduled-job tool."""
+
+import time
 
 import pytest
+from fake_cron import FakeCron
 
-from reminders_kanban.execution import UnsupportedControl
-from reminders_kanban.execution.admission import Admission, positive
-
-
-@pytest.mark.parametrize(('raw', 'expected'), [(None, None), (0, None), (-1, None),
-                                              (True, None), ('bad', None), ('4', 4)])
-def test_positive(raw, expected):
-    assert positive(raw) == expected
+from reminders_kanban.execution import TaskControl, UnsupportedControl, board, runner
+from reminders_kanban.execution.admission import DEFAULT_MAXIMUM, Admission, profile_for
 
 
-@pytest.mark.parametrize(('host', 'adjusted', 'host_board_cap', 'expected'), [
-    (None, None, None, (None, 3, 3)),
-    (5, None, None, (5, 5, 5)),
-    (5, 7, None, (5, 7, 5)),
-    (5, 2, None, (5, 2, 2)),
-    (None, 7, 2, (None, 7, 2)),
-])
-def test_limits(host, adjusted, host_board_cap, expected):
-    a = Admission.__new__(Admission)
-    a.config = lambda: {'kanban': {'dispatch_in_gateway': False,
-                                 'max_in_progress': host, 'max_spawn': host_board_cap}}
-    a.dispatch = SimpleNamespace(review_dispatch_enabled=lambda: False,
-                                 resolve_max_in_progress=lambda value: value)
-    conn = sqlite3.connect(':memory:')
-    conn.execute('CREATE TABLE rk_settings (key TEXT, value INTEGER)')
-    if adjusted:
-        conn.execute("INSERT INTO rk_settings VALUES ('maximum', ?)", (adjusted,))
-    assert a._settings(conn)[1:] == expected
-    a.dispatch.review_dispatch_enabled = lambda: True
+@pytest.fixture
+def admission(tmp_path):
+    cron = FakeCron()
+    a = Admission(tmp_path / "home", cron=cron)
+    runner._SWEPT.discard(str(a.path))
+    yield a
+    cron.release_all()
+
+
+def new_task(a, key, resources=()):
+    with a.serialized() as conn:
+        task = TaskControl(conn, a.kb).create(key, f"[RK] {key}", "Synthetic",
+                                              assignee="default")
+    a.ready(task, resources=resources)
+    return task
+
+
+def settle(a, task):
+    with a.serialized() as conn:
+        for run in board.list_runs(conn, task):
+            if run.job_id:
+                a.runner.cron.finish(run.job_id)
+                deadline = time.monotonic() + 5
+                while board.run_in_flight(conn, run.id):
+                    assert time.monotonic() < deadline
+                    time.sleep(0.01)
+
+
+def test_profiles_get_their_own_store(tmp_path):
+    assert profile_for(tmp_path / ".hermes") == "default"
+    assert profile_for(tmp_path / ".hermes/profiles/work") == "work"
+    assert (Admission(tmp_path / ".hermes").path
+            != Admission(tmp_path / ".hermes/profiles/work").path)
+
+
+def test_fifo_resources_and_maximum(admission):
+    a = admission
+    ids = [new_task(a, str(i), ["shared"] if i < 2 else []) for i in range(4)]
+    assert a.observe()["board_maximum"] == DEFAULT_MAXIMUM
+    a.set_maximum(2)
+    result = a.admit()
+    assert [s["task_id"] for s in result["started"]] == [ids[0], ids[2]]
+    assert result["running"] == 2
+    assert result["queue"] == [{"task_id": ids[1], "reason": "resource_busy"},
+                               {"task_id": ids[3], "reason": "board_capacity"}]
+    assert not a.admit()["started"]
+    a.set_maximum(1)
+    assert a.admit()["running"] == 2  # lowering never stops running work
+    a.set_maximum(3)
+    assert [s["task_id"] for s in a.admit()["started"]] == [ids[3]]
+    with pytest.raises(ValueError):
+        a.set_maximum(0)
+
+
+def test_a_result_frees_its_resource_once_the_job_ends(admission):
+    a = admission
+    first, second = new_task(a, "a", ["shared"]), new_task(a, "b", ["shared"])
+    a.admit()
+    with a.serialized() as conn:
+        job = board.list_runs(conn, first)[-1].job_id
+    from reminders_kanban.execution import tools
+
+    tools.handle(tools.FINISH, {"summary": "Done"},
+                 execution=type("E", (), {"job_id": job})(), home=a.home)
+    assert a.observe()["queue"] == [{"task_id": second, "reason": "resource_busy"}]
+    settle(a, first)
+    assert [s["task_id"] for s in a.admit()["started"]] == [second]
+
+
+def test_ready_keeps_its_place_and_refuses_ineligible_tasks(admission):
+    a = admission
+    first, second = new_task(a, "a"), new_task(a, "b")
+    a.ready(first)
+    assert [q["task_id"] for q in a.observe()["queue"]] == [first, second]
+    a.set_maximum(1)
+    a.admit()
     with pytest.raises(UnsupportedControl):
-        a._settings(conn)
+        a.ready(first)  # running
+    with pytest.raises(KeyError):
+        a.ready("missing")
+    with pytest.raises(ValueError):
+        a.ready(second, resources=[" "])
 
 
-@pytest.mark.live
-def test_host_contract_in_disposable_home(tmp_path):
-    """Uses real owner transactions/claims, never real credentials or workers."""
-    import os
-    import subprocess
-    from pathlib import Path
+def test_pause_revokes_a_queued_start(admission):
+    a = admission
+    a.set_maximum(1)
+    first, second = new_task(a, "a"), new_task(a, "b")
+    a.admit()
+    assert a.pause(second)["state"] == "paused"
+    a.pause(first)
+    assert not a.admit()["started"]
+    assert a.runner.cron.cancels[0][1] == "Paused from Reminders"
 
-    interpreter = Path.home() / '.hermes/hermes-agent/venv/bin/python'
-    if not interpreter.exists():
-        pytest.skip('installed Hermes compatibility check unavailable')
-    result = subprocess.run([str(interpreter), 'tests/admission_host_contract.py'],
-                            capture_output=True, text=True, timeout=30,
-                            env={**{k: v for k, v in os.environ.items()
-                                    if not k.startswith('HERMES_KANBAN_')},
-                                 'HERMES_HOME': str(tmp_path / 'home'),
-                                 'HERMES_KANBAN_HOME': str(tmp_path / 'kanban')})
-    assert result.returncode == 0, result.stdout + result.stderr
+
+def test_unregistered_tasks_refuse_admission(admission):
+    with admission.serialized() as conn:
+        board.create_task(conn, title="stray", body="x", assignee="default",
+                          idempotency_key="stray")
+    with pytest.raises(UnsupportedControl, match="unregistered"):
+        admission.admit()
+
+
+def test_hold_parks_without_granting_a_start(admission):
+    a = admission
+    with a.serialized() as conn:
+        task = TaskControl(conn, a.kb).create("h", "[RK] h", "Synthetic", assignee="default")
+        a.hold(conn, task)
+    assert a.observe()["queue"] == []
+    assert not a.admit()["started"]
+
+
+def test_a_failed_start_is_reported_and_does_not_block_the_queue(tmp_path):
+    a = Admission(tmp_path / "home", cron=FakeCron(fail_create=True))
+    task = new_task(a, "a")
+    result = a.admit()
+    assert result["started"] == [{"task_id": task, "run_id": 1}]
+    with a.reading() as conn:
+        assert TaskControl(conn, a.kb).observe(task)["state"] == "failed"
+    assert result["running"] == 0

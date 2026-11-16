@@ -28,7 +28,6 @@ import {
   taskView,
   threadOf
 } from '../lib/task-link.js'
-import { normalChoice } from '../lib/model-choice.js'
 import { earlierLabel, pickerLabels, pickerTexts } from '../lib/occurrences.js'
 import { useTaskLink } from './useTaskLink.js'
 import { useAcceptance } from './useAcceptance.js'
@@ -200,7 +199,7 @@ function pillFor(load) {
  * recovery: { row, refresh?, onRepair?, onBilling? } — the task's delegation row, for ticket 17's recovery
  * states: they take the pill, the live line and a footer action (ui/src/recovery/).
  */
-export function TaskConversation({ api, autoFocus, modelPicker, dest, details, earlier = false, footer, hold = null, knownLabels = null, occurrenceRows = null, meta, onClose, onOccurrence, onOpen, onSignIn, onTitle, paused = null, pill, previous = null, queuedLabel, recovery = null, repeating = true, title, upcoming = null }) {
+export function TaskConversation({ api, autoFocus, dest, details, earlier = false, footer, hold = null, knownLabels = null, occurrenceRows = null, meta, onClose, onOccurrence, onOpen, onSignIn, onTitle, paused = null, pill, previous = null, queuedLabel, recovery = null, repeating = true, title, upcoming = null }) {
   const { load, attention, refresh, setOccurrence } = useTaskLink(dest, api, onTitle, recovery?.row)
   const view = load.view
   const acceptance = useAcceptance(api, refresh)
@@ -408,7 +407,6 @@ export function TaskConversation({ api, autoFocus, modelPicker, dest, details, e
             dest={dest}
             key={`${view.selectedOccurrence}:${mode}`}
             mode={mode}
-            modelPicker={modelPicker}
             onRefresh={refresh}
             accepting={(receipt?.phase === 'saving' || receipt?.phase === 'confirmed')}
             onAccept={() => acceptance.accept(view.taskId, {
@@ -688,17 +686,14 @@ function OccurrencePicker({ labels, onChoose, repeating, view }) {
 }
 
 /** Chat composer. Enter sends, Shift+Enter adds a line. A result adds Accept above it. */
-function Composer({ api, modelPicker: ModelPicker, attention, autoFocus, dest, mode, onRefresh, onSent, onSignIn, view, accepting, onAccept }) {
+function Composer({ api, attention, autoFocus, dest, mode, onRefresh, onSent, onSignIn, view, accepting, onAccept }) {
   const storageKey = draftKey(dest, view.selectedOccurrence, mode)
   const [text, setText] = useState(() => store.read(storageKey)?.text ?? '')
-  const [chosenModel, setChosenModel] = useState(() => store.read(storageKey)?.choice ?? null)
-  const task = attention.entry?.history?.task
-  const choice = normalChoice(chosenModel ?? { model: task?.model_override, provider: task?.provider_override, effort: task?.reasoning_effort })
   // { key, token, text }: a submission whose answer never arrived. Until it resolves, Send replays
   // exactly that key and text (the backend rejects one key with different text), so the box locks.
   const [submission, setSubmission] = useState(() => {
     const saved = store.read(storageKey)
-    return saved?.key ? { key: saved.key, token: saved.token, text: saved.sent ?? saved.text, seen: saved.seen ?? 0, ...(saved.model_choice ? { model_choice: saved.model_choice } : {}) } : null
+    return saved?.key ? { key: saved.key, token: saved.token, text: saved.sent ?? saved.text, seen: saved.seen ?? 0 } : null
   })
   const [sending, setSending] = useState(null)
   const [notice, setNotice] = useState(null)
@@ -727,9 +722,9 @@ function Composer({ api, modelPicker: ModelPicker, attention, autoFocus, dest, m
   }, [autoFocus])
 
   useEffect(() => {
-    const saved = submission ? { key: submission.key, token: submission.token, sent: submission.text, seen: submission.seen ?? 0, ...(submission.model_choice ? { model_choice: submission.model_choice } : {}) } : {}
-    store.write(storageKey, text || submission || chosenModel ? { text, choice: chosenModel, ...saved } : null)
-  }, [storageKey, text, submission, chosenModel])
+    const saved = submission ? { key: submission.key, token: submission.token, sent: submission.text, seen: submission.seen ?? 0 } : {}
+    store.write(storageKey, text || submission ? { text, ...saved } : null)
+  }, [storageKey, text, submission])
 
   const send = async what => {
     if (sending || accepting) return
@@ -737,26 +732,22 @@ function Composer({ api, modelPicker: ModelPicker, attention, autoFocus, dest, m
     setNotice(null)
     setSending(what)
     // Persist the key and exact text before the request, so a lost response retries the same submission.
-    // Only a choice made for this reply is sent: an untouched picker leaves the task's settings alone.
-    const made = nextSubmission(submission, attention.token, text, newKey, ModelPicker && chosenModel ? choice : undefined)
+    const made = nextSubmission(submission, attention.token, text, newKey)
     // How many of your messages already say this, so a later copy in the thread is known to be this one.
     const payload = { ...made, seen: made.seen ?? sentReply(made.text, threadOf(view)).seen }
     setSubmission(payload)
-    store.write(storageKey, { text, key: payload.key, token: payload.token, sent: payload.text, seen: payload.seen, choice: chosenModel, ...(payload.model_choice ? { model_choice: payload.model_choice } : {}) })
+    store.write(storageKey, { text, key: payload.key, token: payload.token, sent: payload.text, seen: payload.seen })
     try {
       const response = await api.post('/attention/submissions', {
         key: payload.key,
         task_id: view.taskId,
         token: payload.token,
         action: what,
-        text: payload.text,
-        ...(payload.model_choice ? { model_choice: payload.model_choice } : {})
+        text: payload.text
       })
       const outcome = submissionOutcome(response, what, view.taskId)
       if (!outcome.keepDraft) {
         setText('')
-        // A pick is for this reply only; the task's own settings now carry it.
-        setChosenModel(null)
         setSubmission(null)
         store.write(storageKey, null)
       } else if (!outcome.sameKey) {
@@ -854,17 +845,6 @@ function Composer({ api, modelPicker: ModelPicker, attention, autoFocus, dest, m
           rows={1}
           value={shown}
         />
-        {ModelPicker && (
-          <div className="rk-composer-model">
-            <ModelPicker
-              choice={replaying && submission.model_choice ? submission.model_choice : choice}
-              onChange={setChosenModel}
-              disabled={!ready || Boolean(sending || accepting || replaying)}
-              labelPrefix="Model and reasoning for this reply"
-              placement="composer"
-            />
-          </div>
-        )}
         {signInFirst ? (
           <Button onClick={onSignIn} size="sm">
             Sign in to send

@@ -1,12 +1,12 @@
 # Install the experimental preview
 
-This preview includes the source and a built plugin package. Fresh-account signing and permission recovery remain unverified. Normal released Hermes setups cannot delegate through this plugin yet; browsing and editing require the native helper and macOS consent.
+This preview includes the source and a built plugin package. Fresh-account signing and permission recovery remain unverified. Browsing and editing require the native helper and macOS consent.
 
 ## Check prerequisites
 
 Use macOS 14 or later with Hermes Desktop and Xcode command-line tools. Run `xcode-select --install` if `swiftc` is unavailable. Use Hermes 0.23.1 or later. The plugin declares that minimum, and Hermes refuses to load it on older versions.
 
-Delegation needs a Hermes release with board-scoped execution support. That capability is not in the released host yet. Until a compatible host is available, treat delegation as unavailable. Changing global Kanban dispatcher settings is not a supported installation step.
+Delegation needs a running Hermes gateway for the profile and uses Hermes' scheduled jobs. Each delegated run is one job named `Reminders: <task>`, removed when the run ends. It runs on the profile's main model under `approvals.cron_mode` (default: approval-gated commands are refused). No Hermes configuration change is needed.
 
 The release repository contains source at its root and the built package under `plugin/`. Hermes must load the package directory containing `plugin.yaml`, `desktop/plugin.js`, and `dashboard/plugin_api.py`. Do not install the development root, which contains a `pyproject.toml` for source tests.
 
@@ -34,13 +34,13 @@ If developer tools are missing, click **Install Apple tools** and complete Apple
 
 Approve the macOS Reminders prompt when the helper requests access. If access was denied, allow **RK Reminders Helper** in **System Settings > Privacy & Security > Reminders**, then click **Check again**. A locked Mac can prevent the helper from completing an access request. Unlock the Mac before retrying.
 
-Select your lists and review their reminders before enabling pickup. Do not activate delegated work until the board reports that its execution host is compatible.
+Select your lists and review their reminders before enabling pickup.
 
 The first setup on a clean account and permission persistence after a helper rebuild require real-device verification. A successful compile or an existing account's permission grant does not establish those checks.
 
 ## Keep background work under your control
 
-Keep the owning Hermes gateway running for background work. Closing the board does not stop the gateway. The plugin uses the gateway's existing execution mechanism and does not launch another dispatcher.
+Keep the owning Hermes gateway running for background work. Closing the board does not stop the gateway. Work runs through Hermes' own scheduled jobs; the plugin launches no other agent process. If Hermes restarts during a run, the run is left alone for up to two hours, then marked failed; it is never started again by itself.
 
 Pickup activation is separate from plugin enablement. Turning pickup off stops new automatic starts. It retains existing task state so that you can review, answer, or stop work already created.
 

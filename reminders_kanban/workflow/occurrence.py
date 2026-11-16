@@ -10,7 +10,6 @@ from reminders_kanban.claims import claims, holder, short
 from reminders_kanban.execution import UnsupportedControl
 from reminders_kanban.execution.recovery import Recovery
 from reminders_kanban.links import page_url
-from reminders_kanban.model_choice import ModelChoice
 from reminders_kanban.reminders import helper
 from reminders_kanban.reminders.completion import Completion, instructions, same_identity
 from reminders_kanban.reminders.edits import WRITE_LOCK
@@ -267,7 +266,6 @@ class OccurrenceDelegation(Delegation):
                 instruction_version=1,
                 resources=list(resources),
                 status="preparing",
-                model_choice=self.model_choices.read().model_dump(),
                 task_id=None,
                 accepted=False,
                 takeover=takeover,
@@ -289,8 +287,7 @@ class OccurrenceDelegation(Delegation):
             task = control.create(
                 row["key"],
                 original["title"],
-self._body_notes(original) + "\nDeliver your result with kanban_request_review. "
-                "Never complete the source reminder."
+self._body_notes(original) + "\nNever complete the source reminder."
                 + (
                     "\nPrior run reconciliation; inspect before repeating actions:\n"
                     + row["prior_effects"]
@@ -298,7 +295,6 @@ self._body_notes(original) + "\nDeliver your result with kanban_request_review. 
                     else ""
                 ),
                 assignee=self.profile,
-                **ModelChoice.model_validate(row.get("model_choice", {})).task_fields(),
             )
             self.admission.hold(conn, task)
             row["task_id"] = task
@@ -700,7 +696,6 @@ self._body_notes(original) + "\nDeliver your result with kanban_request_review. 
                     link_authorization_id=row.get("link_authorization_id", row["authorization_id"]),
                     resources=row["resources"],
                     status="preparing",
-                    model_choice=self.model_choices.read().model_dump(),
                     task_id=None,
                     accepted=False,
                     predecessor=row["key"],
@@ -849,7 +844,6 @@ self._body_notes(original) + "\nDeliver your result with kanban_request_review. 
                         instruction_version=1,
                         resources=row["resources"],
                         status="preparing",
-                        model_choice=self.model_choices.read().model_dump(),
                         task_id=None,
                         accepted=False,
                         predecessor=row["key"],

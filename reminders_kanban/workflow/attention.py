@@ -6,7 +6,6 @@ from contextlib import nullcontext
 from uuid import uuid4
 
 from reminders_kanban.execution import OperationConflict, UnsupportedControl
-from reminders_kanban.model_choice import ModelChoice
 
 logger = logging.getLogger(__name__)
 
@@ -120,8 +119,7 @@ class Attention:
         later attempt has since asked again) is left alone.
         """
         task_id, action = receipt["task_id"], receipt["action"]
-        # (`specified`: Hermes' way out of triage, where it files a follow-up question.)
-        moved = {"unblocked", "specified"} if action == "reply" else {"review_reopened"}
+        moved = {"unblocked"} if action == "reply" else {"review_reopened"}
         try:
             asked = int(str(receipt["token"]).rsplit(":", 1)[1])
         except (IndexError, ValueError):
@@ -193,13 +191,10 @@ class Attention:
                         submissions=submissions,
                         needs_you_count=sum(t["required_action"] is not None for t in tasks))
 
-    def submit(self, *, key, task_id, token, action, text, model_choice=None):
+    def submit(self, *, key, task_id, token, action, text):
         if action not in {"reply", "request_changes"} or not key.strip() or not text.strip():
             raise ValueError("action, submission key and text required")
         request = dict(task_id=task_id, token=token, action=action, text=text.strip())
-        choice = ModelChoice.model_validate(model_choice) if model_choice is not None else None
-        if choice is not None:
-            request["model_choice"] = choice.model_dump()
         encoded = json.dumps(request, sort_keys=True)
         for owner in self.owners:
             with owner.store.locked() as rows_db:
@@ -210,13 +205,13 @@ class Attention:
                            else self.owner.store.locked())
                 with journal as db:
                     receipt, tick = self._submit(
-                        db, rows_db, owner, row, key, task_id, token, action, text, encoded, choice)
+                        db, rows_db, owner, row, key, task_id, token, action, text, encoded)
                 if tick:
                     owner._tick(rows_db)
                 return receipt
         raise NoDelegatedTask("task is not an actionable delegated occurrence")
 
-    def _submit(self, db, rows_db, owner, row, key, task_id, token, action, text, encoded, choice):
+    def _submit(self, db, rows_db, owner, row, key, task_id, token, action, text, encoded):
         old = db.execute("SELECT * FROM attention_submissions WHERE key=?", (key,)).fetchone()
         if old and old["request"] != encoded:
             raise OperationConflict("submission key has different content")
@@ -262,8 +257,6 @@ class Attention:
             save()
             # Comment has its own durable host idempotency key. A failed response
             # here may safely replay before any lifecycle transition is attempted.
-            if choice is not None:
-                control.set_model_choice(task_id, choice)
             receipt["comment_id"] = control.comment(task_id, receipt["comment_key"], text)
             receipt["status"] = "needs_reconciliation"
             save()

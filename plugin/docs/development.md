@@ -62,6 +62,6 @@ The CI workflow runs source tests, UI checks, native compilation, and the packag
 
 ## Publish a reviewed snapshot
 
-Create the public repository from the exported directory with a new Git history. Keep the private development history private. Review the exported files before publishing. Mark experimental snapshots as prereleases and list their unfinished live checks. A stable release needs fresh-account setup, real-device sync, and supported host execution proof.
+Create the public repository from the exported directory with a new Git history. Keep the private development history private. Review the exported files before publishing. Mark experimental snapshots as prereleases and list their unfinished live checks. A stable release needs fresh-account setup, real-device sync, and execution proof with a real model.
 
 The intended repository name is `nicolasdmolina/hermes-reminders-kanban-plugin`. Its catalog package path is `plugin`. Repository creation and catalog publication are separate actions from source preparation.

@@ -1,18 +1,17 @@
 // Agent pickup for one connection and profile: the /delegation read, the owner tick while the
-// board is open, and the deliberate actions (activate, deactivate, board maximum, model choice,
-// delegate, accept, resume).
+// board is open, and the deliberate actions (activate, deactivate, board maximum, delegate,
+// accept, resume).
 // Contract: reminders_kanban/api/delegation-contract.md. Placement lives in lib/placement.js.
 import { useQuery, useQueryClient } from '@hermes/plugin-sdk'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import { isRouted, queryKey } from '../api/client.js'
-import { getDelegation, getLiveAttention, postDelegation, postModelChoice, postStop } from '../api/delegation.js'
+import { getDelegation, getLiveAttention, postDelegation, postStop } from '../api/delegation.js'
 import { readThroughActivation } from '../lib/reads.js'
 import { classifyError } from '../lib/state.js'
-import { actionOutcome, confirmOutcome, deactivationOutcome, keepsTicking, mergeRows, problemText, stopOutcome, withStop, runActivation } from '../lib/delegation-outcomes.js'
+import { actionOutcome, confirmOutcome, deactivationOutcome, keepsTicking, mergeRows, stopOutcome, withStop, runActivation } from '../lib/delegation-outcomes.js'
 import { takeOverRequest } from '../lib/elsewhere.js'
 import { onlyClaimChanged } from '../lib/task-link.js'
-import { DEFAULT_CHOICE, normalChoice, saveQueue } from '../lib/model-choice.js'
 
 // The owner tick observes sources, runs maintenance and starts eligible work. One at a time,
 // while the board is visible and pickup is on, or off with work still out (it admits nothing new).
@@ -32,20 +31,9 @@ const statusKey = data => (data?.tasks ?? []).map(row => `${row.key}:${row.statu
 export function useDelegation(scope, boardReadAt = 0, { watching = false } = {}) {
   const client = useQueryClient()
   const key = queryKey(scope, 'delegation')
-  // Model saves that have landed, and the last one's answer with its scope. A read that set out
-  // before a save landed carries the old choice, so it takes the saved one instead (no cancelling:
-  // other actions await their rereads).
-  const modelSaves = useRef(0)
-  const lastSaved = useRef(null)
   const query = useQuery({
     queryKey: key,
-    queryFn: async () => {
-      const started = modelSaves.current
-      const answer = await readThroughActivation(() => getDelegation(scope), () => isRouted(scope))
-      const saved = lastSaved.current
-      if (started === modelSaves.current || answer?.status !== 'ok' || saved?.scope !== scope.join('\u0000')) return answer
-      return { ...answer, model_choice: saved.choice }
-    },
+    queryFn: () => readThroughActivation(() => getDelegation(scope), () => isRouted(scope)),
     enabled: () => isRouted(scope),
     // Each read launches the native helper; a busy helper or a slow first boot can fail one read.
     retry: 2,
@@ -184,24 +172,12 @@ export function useDelegation(scope, boardReadAt = 0, { watching = false } = {})
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data])
 
-  /** The one explicit activation. Safe to repeat: the backend keeps task identity. A model choice
-   *  still saving lands first, so the tasks it starts take it; a failed save stops it here. */
+  /** The one explicit activation. Safe to repeat: the backend keeps task identity. */
   const activate = async () => {
     if (activating || deactivating) return
     setActivating(true)
     setProblem(null)
     flips.current += 1
-    // Only saves still out count: an earlier failed one already put the row back to what is saved.
-    const saved = models.pending > 0 ? await models.settled() : null
-    if (saved?.problem) {
-      setProblem(saved.problem)
-      setActivating(false)
-      return { failed: true }
-    }
-    if (saved?.superseded) {
-      setActivating(false)
-      return { superseded: true }
-    }
     return runActivation({
       post: () => postDelegation(scope, { action: 'activate' }),
       reread,
@@ -228,44 +204,6 @@ export function useDelegation(scope, boardReadAt = 0, { watching = false } = {})
       onSettled: () => setDeactivating(false)
     })
   }
-
-  // The board's model choice for new tasks (model-choice-contract.md). Saves go out in order; the
-  // row shows the newest pick until they land, then the saved choice, or the old one and why not.
-  const scopeKey = scope.join('\u0000')
-  const [wanted, setWanted] = useState(null)
-  const [modelProblem, setModelProblem] = useState(null)
-  useEffect(() => {
-    setWanted(null)
-    setModelProblem(null)
-  }, [scopeKey])
-  const models = useMemo(
-    () =>
-      saveQueue(async choice => {
-        try {
-          const answer = await postModelChoice(scope, choice)
-          if (answer?.status !== 'ok' || !answer.model_choice) return { problem: problemText(answer) }
-          lastSaved.current = { scope: scope.join('\u0000'), choice: answer.model_choice }
-          modelSaves.current += 1
-          if (isRouted(scope)) client.setQueryData(key, current => (current ? { ...current, model_choice: answer.model_choice } : current))
-          return { ok: true, choice: answer.model_choice }
-        } catch (error) {
-          const kind = classifyError(error)
-          if (kind.kind === 'superseded') return { superseded: true }
-          return { problem: problemText(null, kind) }
-        }
-      }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [scopeKey]
-  )
-  const setModelChoice = async choice => {
-    setWanted(normalChoice(choice))
-    setModelProblem(null)
-    const outcome = await models.save(choice)
-    if (models.pending === 0) setWanted(null)
-    if (outcome.problem) setModelProblem(outcome.problem)
-    return outcome
-  }
-  const savedChoice = ok ? normalChoice(data.model_choice ?? DEFAULT_CHOICE) : null
 
   /** Board maximum: a positive number, or null to inherit Hermes' limit. */
   const setMaximum = async maximum => {
@@ -376,11 +314,6 @@ export function useDelegation(scope, boardReadAt = 0, { watching = false } = {})
     problem,
     activate,
     deactivate,
-    // null until read; an older backend without the field reads as the profile's own.
-    modelChoice: wanted ?? savedChoice,
-    modelSaving: wanted != null,
-    modelProblem,
-    setModelChoice,
     setMaximum,
     act,
     reread,

@@ -1,5 +1,5 @@
 // Agent pickup controls: the header's Pickup control (a popover with running work, the board
-// maximum, the model for new tasks and the on/off switch) and the same facts in onboarding's review step.
+// maximum and the on/off switch) and the same facts in onboarding's review step.
 // Agent pickup is a host Switch, as core Settings renders every on/off row (ToggleRow).
 // State comes from useDelegation (GET /delegation), never from the board envelope.
 import { Button, Codicon, Dialog, DialogContent, DialogTitle, Popover, PopoverContent, PopoverTrigger, Switch, Tip } from '@hermes/plugin-sdk'
@@ -10,7 +10,6 @@ import { problemText } from '../lib/delegation-outcomes.js'
 import { linksFact, linksGate } from '../lib/link-setup.js'
 import { readyCount } from '../lib/reconciliation.js'
 import { LinkSetup, TaskLinksButton, TaskLinksFact } from '../link-setup/LinkSetup.jsx'
-import { ModelPicker } from './ModelChoice.jsx'
 import './styles.js'
 
 const LOCAL = 'Phone access off'
@@ -140,12 +139,6 @@ function PickupPanel({ delegation, gate, onSetUp, phase, ready, why }) {
               <dd>{limits.other_boards_running}</dd>
             </div>
           )}
-          <div>
-            <dt>Model</dt>
-            <dd>
-              <ModelPicker delegation={delegation} />
-            </dd>
-          </div>
           <TaskLinksFact delegation={delegation} inline={false} onSetUp={onSetUp} />
         </dl>
       )}
@@ -280,14 +273,6 @@ export function PickupReview({ delegation, fallbackReady, fallbackStart = fallba
           <dt>Tasks at once</dt>
           <dd>
             <MaximumStepper delegation={delegation} />
-          </dd>
-        </div>
-      )}
-      {(phase === 'on' || phase === 'off') && (
-        <div>
-          <dt>Model</dt>
-          <dd>
-            <ModelPicker delegation={delegation} />
           </dd>
         </div>
       )}

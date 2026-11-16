@@ -9,7 +9,6 @@ import { pluginContext, request, useScope } from '../api/client.js'
 import { bindingDest, claims, hasHermesTask, notesWithoutLink, taskLinkOf } from '../lib/task-link.js'
 import { DialogHead, StatusPill } from '../task/shell.jsx'
 import { BILLING_ROUTE, REPAIR_ROUTE } from '../recovery/Recovery.jsx'
-import { ModelChoicePicker } from '../delegation/ModelChoice.jsx'
 import { LinkProblem, TaskConversation } from './TaskPanel.jsx'
 
 /** Transport bound to one connection/profile scope; late answers reject as superseded. */
@@ -78,7 +77,6 @@ export function TaskSection({ binding = null, foreign = false, details, earlier 
   return (
     <TaskConversation
       api={api}
-      modelPicker={ModelChoicePicker}
       autoFocus
       dest={dest}
       details={details}

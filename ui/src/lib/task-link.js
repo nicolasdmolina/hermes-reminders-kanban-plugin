@@ -596,9 +596,9 @@ export function scrollPlan({ opened, saved, sent, grew, atBottom, finished }) {
 
 /** What Send submits: an unanswered submission for this same attention token is replayed exactly
  *  (key and text), whatever the box now holds; otherwise a fresh key with the current text. */
-export function nextSubmission(pending, token, text, mint, modelChoice) {
+export function nextSubmission(pending, token, text, mint) {
   if (pending?.key && pending.token === token) return pending
-  return { key: mint(), token, text: text.trim(), ...(modelChoice ? { model_choice: modelChoice } : {}) }
+  return { key: mint(), token, text: text.trim() }
 }
 
 /**

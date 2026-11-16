@@ -150,7 +150,7 @@ def test_public_source_allowlist_excludes_private_history_and_proofs():
                                     "docs/agents/", "scripts/hermes-sandbox/"))
                    for path in files)
     assert not any(path.endswith("_live.py") for path in files)
-    assert "tests/test_execution_host.py" not in files
+    assert "tests/fake_llm.py" not in files
     assert "docs/installation.md" in files
 
 

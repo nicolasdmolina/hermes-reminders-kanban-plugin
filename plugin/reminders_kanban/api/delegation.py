@@ -6,10 +6,9 @@ from fastapi import APIRouter, Depends, Response
 from pydantic import BaseModel, ConfigDict, Field, StrictInt, StrictStr
 
 from reminders_kanban.api.preview import Home
-from reminders_kanban.execution import UnsupportedControl, UnsupportedHost
+from reminders_kanban.execution import UnsupportedControl
 from reminders_kanban.execution.admission import Admission
 from reminders_kanban.reminders import helper
-from reminders_kanban.runtime import ensure_board
 
 router = APIRouter()
 
@@ -33,7 +32,7 @@ def service(home: Home):
 
     if home is None:
         return None
-    # Installation owns board creation and verified link-writing configuration.
+    # Installation owns verified link-writing configuration.
     # A client cannot name another board/profile or supply a preservation-proof token.
     try:
         from reminders_kanban.links import origin_error
@@ -53,7 +52,7 @@ def service(home: Home):
 
         return Delegation(
             home,
-            Admission(ensure_board(home)),
+            Admission(home),
             profile=profile,
             origin=origin,
             write_link=write_link,
@@ -77,8 +76,6 @@ def run(service, action=None):
         return service.preview() if action is None else service.apply(**action.model_dump())
     except helper.HelperError as exc:
         return {"status": exc.code, "current": exc.current}
-    except UnsupportedHost as exc:
-        return {"status": "native_host_required", "reason": str(exc)}
     except (ValueError, KeyError, TypeError, UnsupportedControl) as exc:
         return {"status": "attention", "reason": str(exc)}
 

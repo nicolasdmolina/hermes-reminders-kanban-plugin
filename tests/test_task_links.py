@@ -1,5 +1,5 @@
 import pytest
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from reminders_kanban.api import task_links
@@ -86,13 +86,7 @@ def test_route_boundary(tmp_path, monkeypatch):
     client = TestClient(app)
     url = f"/task-links/{owner}/{link}"
 
-    def denied(request):
-        raise HTTPException(401)
-
-    monkeypatch.setattr(task_links, "authenticate", denied)
-    assert client.get(url).json()["status"] == "sign_in_required"
-    assert client.get(url).status_code == 401
-    monkeypatch.setattr(task_links, "authenticate", lambda request: None)
+    # Sign-in is Hermes' own: its dashboard answers 401 before any plugin route runs.
     monkeypatch.setattr(task_links, "profile_home", lambda: tmp_path)
     monkeypatch.setattr(task_links, "observe", observation)
     response = client.get(url)

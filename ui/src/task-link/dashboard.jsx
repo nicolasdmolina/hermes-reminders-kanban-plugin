@@ -9,7 +9,6 @@ import { usePolledRecovery } from '../recovery/poll.js'
 import { defineStyles, installStyles } from '../styles.js'
 import dashboardCss from './dashboard.css'
 import { DialogHead, StatusPill } from '../task/shell.jsx'
-import { ModelPicker } from './dashboard/ModelPicker.jsx'
 import { LinkEmpty, LinkProblem, TaskConversation } from './TaskPanel.jsx'
 
 defineStyles(dashboardCss)
@@ -128,7 +127,6 @@ function TaskLinkPage() {
             api={api}
             dest={dest}
             key={`${dest.owner}/${dest.link}/${dest.profile}`}
-            modelPicker={ModelPicker}
             occurrenceRows={feed.occurrences}
             onOccurrence={onOccurrence}
             onSignIn={signIn}

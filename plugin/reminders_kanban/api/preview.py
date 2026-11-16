@@ -3,6 +3,7 @@
 import hashlib
 import json
 import sqlite3
+from contextlib import closing
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Annotated
@@ -47,24 +48,30 @@ def card(snapshot, owner):
     }
 
 
-def concurrency():
+def concurrency(home=None):
+    """The plugin's own start limit (``Admission``), read without creating its store."""
+    from reminders_kanban.execution import board
+    from reminders_kanban.execution.admission import DEFAULT_MAXIMUM
+
+    path = board.path_for(home) if home is not None else None
+    if path is None or not path.exists():
+        return DEFAULT_MAXIMUM
     try:
-        from hermes_cli.config import load_config_readonly
-    except ImportError:
-        return 3
-    config = load_config_readonly()
-    value = (config.get("kanban") or {}).get("max_in_progress")
-    return value if type(value) is int and value > 0 else 3
+        with closing(sqlite3.connect(f"file:{path}?mode=ro", uri=True)) as conn:
+            row = conn.execute("SELECT value FROM rk_settings WHERE key='maximum'").fetchone()
+    except sqlite3.Error:
+        return DEFAULT_MAXIMUM
+    return row[0] if row else DEFAULT_MAXIMUM
 
 
-def envelope(state, owner, status, error=None):
+def envelope(state, owner, status, error=None, *, home=None):
     return {
         "status": status,
         "error": error,
         "owner_id": owner,
         "pickup_enabled": False,
         "columns": COLUMNS,
-        "effective_concurrency": concurrency(),
+        "effective_concurrency": concurrency(home),
         "setup": {
             "selected_list_ids": state["selected_list_ids"],
             "stage": "select_lists"
@@ -93,6 +100,10 @@ def operate(home, refresh=False, selection=None):
     if home is None:
         return envelope(empty, None, "unavailable_host", {"code": "unavailable_host"})
     owner = hashlib.sha256(str(home).encode()).hexdigest()
+
+    def answer(*args, **kwargs):
+        return envelope(*args, home=home, **kwargs)
+
     try:
         store = PreviewStore(home / "reminders-kanban" / "state.sqlite3")
         watch = sqlite3.connect(store.path)
@@ -100,7 +111,7 @@ def operate(home, refresh=False, selection=None):
             with store.locked() as db:
                 state = store.read(db)
                 if not refresh:
-                    return envelope(state, owner, "stale" if state["observed_at"] else "loading")
+                    return answer(state, owner, "stale" if state["observed_at"] else "loading")
                 seen = watch.execute("PRAGMA data_version").fetchone()
             if selection is None:
                 # A plain refresh reads Reminders with the lock free, so a card action never
@@ -131,7 +142,7 @@ def operate(home, refresh=False, selection=None):
                                 if not state["selection_saved"]
                                 else ("ready" if snapshots else "empty_list")
                             )
-                            return envelope(state, owner, status)
+                            return answer(state, owner, status)
         finally:
             watch.close()
         with store.locked() as db:
@@ -142,7 +153,7 @@ def operate(home, refresh=False, selection=None):
                 selected = state["selected_list_ids"] if selection is None else selection
                 if not set(selected) <= ids:
                     # With the lists as they are now, so the picker can drop the one that's gone.
-                    return envelope(
+                    return answer(
                         {**state, "lists": lists},
                         owner,
                         "stale" if state["observed_at"] else "read_failure",
@@ -170,7 +181,7 @@ def operate(home, refresh=False, selection=None):
                     if not state["selection_saved"]
                     else ("ready" if snapshots else "empty_list")
                 )
-                return envelope(state, owner, status)
+                return answer(state, owner, status)
             except (helper.HelperError, OSError, ValueError) as exc:
                 code = exc.code if isinstance(exc, helper.HelperError) else "failed"
                 status = (
@@ -178,9 +189,9 @@ def operate(home, refresh=False, selection=None):
                     if code == "access_denied"
                     else ("stale" if state["observed_at"] else "read_failure")
                 )
-                return envelope(state, owner, status, {"code": code})
+                return answer(state, owner, status, {"code": code})
     except (OSError, sqlite3.Error, json.JSONDecodeError):
-        return envelope(empty, owner, "persistence_failed", {"code": "persistence_failed"})
+        return answer(empty, owner, "persistence_failed", {"code": "persistence_failed"})
 
 
 Home = Annotated[Path | None, Depends(profile_home)]

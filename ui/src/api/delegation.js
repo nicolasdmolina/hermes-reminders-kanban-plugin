@@ -15,7 +15,3 @@ export const getLiveAttention = (scope, after = 0) => request(scope, `/attention
  *  or running work, releases its slot and leaves the reminder unchecked. `taskId` is the row's
  *  `task_id` from GET /delegation. No body. Idempotent. */
 export const postStop = (scope, taskId) => request(scope, `/delegation/${encodeURIComponent(taskId)}/stop`, { method: 'POST' })
-
-/** POST /model-choice (model-choice-contract.md): replaces the board's whole choice for new tasks,
- *  { model, provider, effort }, nulls meaning the profile's own. Answers { status, model_choice }. */
-export const postModelChoice = (scope, choice) => request(scope, '/model-choice', { method: 'POST', body: choice })

@@ -225,14 +225,10 @@ test('task-link setup refusals read in plain words, never as a generic failure',
   assert.doesNotMatch(missing + invalid, /couldn't do that/i)
 })
 
-test('missing native host support explains the pickup block and keeps the board available', () => {
-  for (const failure of [
-    { status: 'native_host_required' },
-    { status: 'setup_required', reason: 'native_host_required' }
-  ]) {
-    assert.match(activationOutcome(failure).problem, /isn.t available in this Hermes setup/)
-    assert.match(problemText(failure), /still use the Reminders board/)
-  }
+test('an owner without agent support explains the pickup block in plain words', () => {
+  const failure = { status: 'setup_required', reason: 'owner_board_unavailable' }
+  assert.match(activationOutcome(failure).problem, /isn.t set up for agent work/)
+  assert.match(problemText(failure), /isn.t set up for agent work/)
 })
 
 test('after Stop then Run again, an action reads the current run, not the stopped one kept beside it', () => {

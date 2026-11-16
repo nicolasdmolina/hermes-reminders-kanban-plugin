@@ -8,6 +8,7 @@ import os
 import platform
 import plistlib
 import re
+import secrets
 import subprocess
 import tempfile
 from pathlib import Path
@@ -27,8 +28,9 @@ MESSAGES = {
 }
 
 
-def _run(args, *, timeout=20, check=True):
-    return subprocess.run(args, check=check, capture_output=True, text=True, timeout=timeout)
+def _run(args, *, timeout=20, check=True, env=None):
+    return subprocess.run(args, check=check, capture_output=True, text=True, timeout=timeout,
+                          env=env)
 
 
 def _result(status):
@@ -184,10 +186,13 @@ def _create_identity():
         ], timeout=60)
         # The enclosing directory is 0700; the key and archive never leave this operation.
         key.chmod(0o600)
+        # macOS 26 refuses to import an archive with an empty password. This one-time password
+        # protects only the temporary archive, which is deleted with this directory.
+        passphrase = secrets.token_urlsafe(24)
         _run([
             "/usr/bin/openssl", "pkcs12", "-export", "-inkey", str(key), "-in", str(certificate),
-            "-out", str(archive), "-passout", "pass:",
-        ])
+            "-out", str(archive), "-passout", "env:RK_ARCHIVE_PASSPHRASE",
+        ], env={**os.environ, "RK_ARCHIVE_PASSPHRASE": passphrase})
         archive.chmod(0o600)
         der = _run([
             "/usr/bin/openssl", "x509", "-in", str(certificate), "-fingerprint", "-sha1", "-noout",
@@ -199,7 +204,7 @@ def _create_identity():
         _save_pin(fingerprint, generated=True)
         _run([
             "/usr/bin/security", "import", str(archive), "-k", str(keychain), "-f", "pkcs12",
-            "-P", "", "-x", "-T", "/usr/bin/codesign",
+            "-P", passphrase, "-x", "-T", "/usr/bin/codesign",
         ], timeout=60)
     return fingerprint
 

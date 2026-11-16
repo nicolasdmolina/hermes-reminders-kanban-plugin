@@ -25,7 +25,6 @@ from reminders_kanban.claims import (
 from reminders_kanban.execution import TaskControl
 from reminders_kanban.execution.recovery import Recovery, failure
 from reminders_kanban.links import Links, link_url, page_url
-from reminders_kanban.model_choice import ModelChoice, ModelChoices
 from reminders_kanban.reminders import helper
 from reminders_kanban.reminders.completion import instructions, same_identity
 from reminders_kanban.reminders.edits import WRITE_LOCK
@@ -90,7 +89,6 @@ class Delegation:
         self.origin, self.call, self.write_link = origin, call, write_link
         self.link_setup = link_setup
         self.control_factory = control_factory
-        self.model_choices = ModelChoices(home, admission.board)
         self.store = CompletionStore(home / "reminders-kanban/delegation.sqlite3")
         self.setup = Human(home, call=call).store
         self.completion = HumanCompletion(
@@ -715,7 +713,6 @@ class Delegation:
             status="ok",
             pickup_enabled=self._active(db),
             selected_list_ids=selected,
-            model_choice=self.model_choices.read().model_dump(),
             limits=self.admission.observe(),
             eligible=[
                 s
@@ -733,7 +730,6 @@ class Delegation:
             rows = self._task_views(db)
             return dict(status="ok", pickup_enabled=self._active(db),
                         selected_list_ids=state["selected_list_ids"],
-                        model_choice=self.model_choices.read().model_dump(),
                         limits=self.admission.observe(), eligible=[], tasks=rows,
                         stale=True, as_of=state.get("observed_at"),
                         task_links=self.link_readiness())
@@ -796,7 +792,6 @@ class Delegation:
                     key=str(uuid4()),
                     resources=list(resources),
                     status="preparing",
-                    model_choice=self.model_choices.read().model_dump(),
                     task_id=None,
                     accepted=False,
                     takeover=takeover,
@@ -825,7 +820,6 @@ class Delegation:
                 key=str(uuid4()),
                 resources=list(resources),
                 status="preparing",
-                model_choice=self.model_choices.read().model_dump(),
                 task_id=None,
                 accepted=False,
                 takeover=takeover,
@@ -839,8 +833,7 @@ class Delegation:
             task = control.create(
                 row["key"],
                 original["title"],
-self._body_notes(original) + "\nDeliver your result with kanban_request_review. "
-                "Never complete the source reminder."
+self._body_notes(original) + "\nNever complete the source reminder."
                 + (
                     "\nPrior run reconciliation; inspect before repeating actions:\n"
                     + row["prior_effects"]
@@ -848,7 +841,6 @@ self._body_notes(original) + "\nDeliver your result with kanban_request_review. 
                     else ""
                 ),
                 assignee=self.profile,
-                **ModelChoice.model_validate(row.get("model_choice", {})).task_fields(),
             )
             self.admission.hold(conn, task)
             row["task_id"] = task

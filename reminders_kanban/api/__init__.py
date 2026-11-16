@@ -10,7 +10,6 @@ from reminders_kanban.api import (
     helper_setup,
     human,
     link_setup,
-    model_choice,
     occurrence,
     preview,
     reconciliation,
@@ -38,7 +37,5 @@ router.include_router(occurrence.router)
 router.include_router(recurring.router)
 
 router.include_router(reconciliation.router)
-
-router.include_router(model_choice.router)
 
 router.include_router(helper_setup.router)

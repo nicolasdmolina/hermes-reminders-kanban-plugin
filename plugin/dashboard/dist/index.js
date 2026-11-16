@@ -131,9 +131,9 @@
     title: "Open a task from its reminder",
     body: "This page shows one task at a time. Use the Open in Hermes link in the reminder's notes."
   };
-  function safeDecode(text2) {
+  function safeDecode(text) {
     try {
-      return decodeURIComponent(text2);
+      return decodeURIComponent(text);
     } catch {
       return null;
     }
@@ -331,33 +331,33 @@
     }
     return null;
   }
-  var copiesOf = (thread, text2) => thread.filter((item) => item.type === "you" && item.text.trim() === text2).length;
-  function sentReply(text2, thread) {
-    const trimmed = text2.trim();
+  var copiesOf = (thread, text) => thread.filter((item) => item.type === "you" && item.text.trim() === text).length;
+  function sentReply(text, thread) {
+    const trimmed = text.trim();
     return { text: trimmed, seen: copiesOf(thread, trimmed) };
   }
   function pendingReply(sent, thread) {
     if (!sent?.text) return null;
     return copiesOf(thread, sent.text) > (sent.seen ?? 0) ? null : sent.text;
   }
-  function settledSubmission(submission, token, text2, thread) {
+  function settledSubmission(submission, token, text, thread) {
     if (!submission?.key || !token || submission.token === token) return null;
-    return { clear: String(text2 ?? "").trim() === submission.text && copiesOf(thread, submission.text) > (submission.seen ?? 0) };
+    return { clear: String(text ?? "").trim() === submission.text && copiesOf(thread, submission.text) > (submission.seen ?? 0) };
   }
   var URL_CHAR = String.raw`[^\s<>()\x60*]|\([^\s<>()\x60*]*\)`;
   var LINKS = new RegExp(
     String.raw`\[([^\]\n]+)\]\((https?:\/\/(?:${URL_CHAR})+)\)|(https?:\/\/(?:${URL_CHAR})*(?:[^\s<>().,;:!?'"\x60*]|\([^\s<>()\x60*]*\)))`,
     "g"
   );
-  function linkParts(text2) {
+  function linkParts(text) {
     const parts = [];
     let at = 0;
-    for (const match of String(text2 ?? "").matchAll(LINKS)) {
-      if (match.index > at) parts.push(text2.slice(at, match.index));
+    for (const match of String(text ?? "").matchAll(LINKS)) {
+      if (match.index > at) parts.push(text.slice(at, match.index));
       parts.push(match[2] ? { href: match[2], label: match[1] } : { href: match[3], label: match[3] });
       at = match.index + match[0].length;
     }
-    if (at < String(text2 ?? "").length) parts.push(String(text2).slice(at));
+    if (at < String(text ?? "").length) parts.push(String(text).slice(at));
     return parts;
   }
   function inputMode(view) {
@@ -395,9 +395,9 @@
     if (grew) return atBottom ? "bottom" : "behind";
     return "keep";
   }
-  function nextSubmission(pending, token, text2, mint, modelChoice) {
+  function nextSubmission(pending, token, text, mint) {
     if (pending?.key && pending.token === token) return pending;
-    return { key: mint(), token, text: text2.trim(), ...modelChoice ? { model_choice: modelChoice } : {} };
+    return { key: mint(), token, text: text.trim() };
   }
   function submissionOutcome(response, action, taskId) {
     const status = response?.status;
@@ -639,7 +639,7 @@
   }
 
   // src/theme/tokens.css
-  var tokens_default = "/* Plugin color tokens: the only place the plugin derives a color.\n   Hermes has no status tokens, so each tone starts from a host token and adapts to every\n   preset, light/dark mode, accent and user theme. Defined on :root because host dialogs and\n   popovers portal to <body>, outside .rk-page. Feature CSS uses these and host --ui-* / --dt-*\n   tokens only, never a literal color (ui/test/theme.test.js enforces it). Rules for new\n   features are in docs/agents/build-rules.md. */\n\n/* Lightness bounds (OKLCH L) that keep ink readable on the surface it sits on. Text clears\n   4.5:1 and marks (dots, icons, focus) 3:1. Light surfaces cap ink lightness, dark surfaces\n   floor it, so a theme that already meets the bar paints its own color unchanged. Tiles,\n   pills and a focused tile are a step or two off the page, so they get tighter bounds. Dark\n   inks also cap chroma: a light, saturated red or blue falls outside sRGB, and the clipped\n   color paints darker than its lightness says.\n   Measured worst cases on 2026-11-06 across all 12 presets: a due pill on a focused tile in\n   light themes (surface L about 0.82) and in dark themes (surface L about 0.43, Classic dark). */\n:root {\n  --rk-ink-lo: 0;\n  --rk-ink-hi: 0.5;\n  --rk-ink-c: 0.3;\n  --rk-mark-lo: 0;\n  --rk-mark-hi: 0.6;\n}\n:root.dark {\n  --rk-ink-lo: 0.74;\n  --rk-ink-hi: 1;\n  --rk-ink-c: 0.12;\n  --rk-mark-lo: 0.66;\n  --rk-mark-hi: 1;\n}\n/* Board controls paint their own fill under text, so their inks take the tile bounds. */\n.rk-view-trigger,\n.rk-view-action,\n.rk-lists-trigger,\n.rk-header [data-rk-new],\n.rk-notice-actions > button,\n.rk-card-actions > button {\n  --rk-ink-lo: 0;\n  --rk-ink-hi: 0.43;\n  --rk-ink-c: 0.3;\n  --rk-mark-lo: 0;\n  --rk-mark-hi: 0.5;\n}\n:root.dark .rk-view-trigger,\n:root.dark .rk-view-action,\n:root.dark .rk-lists-trigger,\n:root.dark .rk-header [data-rk-new],\n:root.dark .rk-notice-actions > button,\n:root.dark .rk-card-actions > button {\n  --rk-ink-lo: 0.84;\n  --rk-ink-hi: 1;\n  --rk-ink-c: 0.09;\n  --rk-mark-lo: 0.72;\n  --rk-mark-hi: 1;\n}\n.rk-card,\n.rk-column-count {\n  --rk-ink-lo: 0;\n  --rk-ink-hi: 0.43;\n  --rk-ink-c: 0.3;\n  --rk-mark-lo: 0;\n  --rk-mark-hi: 0.5;\n}\n:root.dark .rk-card,\n:root.dark .rk-column-count {\n  --rk-ink-lo: 0.84;\n  --rk-ink-hi: 1;\n  --rk-ink-c: 0.09;\n  --rk-mark-lo: 0.72;\n  --rk-mark-hi: 1;\n}\n/* A focused light tile is one surface step deeper (--ui-bg-secondary), so its marks cap a little\n   lower. Measured 2026-11-06 (ticket 13): the task-link mark on a focused tile in Solarized light\n   was 2.91:1 at the tile bound. */\n:root:not(.dark) .rk-card:focus-visible {\n  --rk-mark-hi: 0.45;\n}\n\n/* The need-you chip and its menu rows (ticket 34) paint a fill under their text: a hovered chip\n   and a highlighted row sit a step deeper than the page or menu, so light inks take the tile cap.\n   Measured 2026-11-09 in Everforest light at the page cap: the hovered chip 4.16:1, the row title\n   4.31:1. Dark ones already clear the page floor. */\n:root:not(.dark) .rk-attn-chip,\n:root:not(.dark) .rk-attn-item {\n  --rk-ink-hi: 0.43;\n  --rk-mark-hi: 0.5;\n}\n\n/* Task conversation surfaces (ticket 08): pills, message bubbles and the composer sit a step off\n   the dialog like a tile, so their inks take the tile bounds (light and dark, on Desktop and on\n   the browser page). */\n.rk-pill,\n.rk-meta-pill,\n.rk-user-bubble,\n.rk-sheet,\n.rk-composer {\n  --rk-ink-lo: 0;\n  --rk-ink-hi: 0.43;\n  --rk-ink-c: 0.3;\n  --rk-mark-lo: 0;\n  --rk-mark-hi: 0.5;\n}\n:root.dark .rk-pill,\n:root.dark .rk-meta-pill,\n:root.dark .rk-user-bubble,\n:root.dark .rk-sheet,\n:root.dark .rk-composer,\n.rk-dash[data-mode='dark'] .rk-pill,\n.rk-dash[data-mode='dark'] .rk-meta-pill,\n.rk-dash[data-mode='dark'] .rk-user-bubble,\n.rk-dash[data-mode='dark'] .rk-sheet,\n.rk-dash[data-mode='dark'] .rk-composer {\n  --rk-ink-lo: 0.84;\n  --rk-ink-hi: 1;\n  --rk-ink-c: 0.09;\n  --rk-mark-lo: 0.72;\n  --rk-mark-hi: 1;\n}\n\n/* The browser task page (ticket 08) sits on the Hermes web dashboard, which names none of the\n   host tokens above and has no :root.dark. ui/src/task-link/dashboard.css maps the host tokens\n   onto .rk-dash from the dashboard's own theme, and dashboard.jsx sets data-mode from its page\n   color, so the inks derive there with the bounds of that mode. */\n.rk-dash {\n  --rk-ink-lo: 0;\n  --rk-ink-hi: 0.5;\n  --rk-ink-c: 0.3;\n  --rk-mark-lo: 0;\n  --rk-mark-hi: 0.6;\n}\n.rk-dash[data-mode='dark'] {\n  --rk-ink-lo: 0.74;\n  --rk-ink-hi: 1;\n  --rk-ink-c: 0.12;\n  --rk-mark-lo: 0.66;\n  --rk-mark-hi: 1;\n}\n\n/* Custom properties compute where they are declared, so the inks are declared again on each\n   raised surface to pick up its tighter bounds. An element that paints a fill under its own\n   text joins this list and the bounds above. */\n:root,\n.rk-card,\n.rk-column-count,\n.rk-attn-chip,\n.rk-attn-item,\n.rk-dash,\n.rk-pill,\n.rk-meta-pill,\n.rk-user-bubble,\n.rk-sheet,\n.rk-composer,\n.rk-view-trigger,\n.rk-view-action,\n.rk-lists-trigger,\n.rk-header [data-rk-new],\n.rk-notice-actions > button,\n.rk-card-actions > button {\n  /* Status hues keep the native Kanban's meaning (Ready blue, running green, attention amber),\n     bent toward the theme accent the way Hermes bends --ui-success. Mixing in oklch keeps the\n     hue when the accent is achromatic (Mono) and settles it into the palette otherwise. */\n  --rk-hue-agent: color-mix(in oklch, var(--ui-blue) 78%, var(--ui-accent));\n  --rk-hue-running: var(--ui-success, color-mix(in oklch, var(--ui-green) 78%, var(--ui-accent)));\n  --rk-hue-attention: color-mix(in oklch, var(--ui-yellow) 85%, var(--ui-accent));\n  --rk-hue-danger: var(--dt-destructive);\n  --rk-hue-focus: var(--dt-composer-ring, var(--dt-ring));\n  /* Done is the host's positive color (ticket 10, design option A). Hermes has no success\n     token for it, and --ui-green carries its own light and dark values. Fills use it as is. */\n  --rk-done-tint: var(--ui-green);\n\n  /* Marks: column dots, icon chips, focus. --rk-focus is offered for focus marks; ticket 10\n     owns the card focus style itself. */\n  --rk-agent: oklch(from var(--rk-hue-agent) clamp(var(--rk-mark-lo), l, var(--rk-mark-hi)) c h);\n  --rk-running: oklch(from var(--rk-hue-running) clamp(var(--rk-mark-lo), l, var(--rk-mark-hi)) c h);\n  --rk-attention: oklch(from var(--rk-hue-attention) clamp(var(--rk-mark-lo), l, var(--rk-mark-hi)) c h);\n  --rk-focus: oklch(from var(--rk-hue-focus) clamp(var(--rk-mark-lo), l, var(--rk-mark-hi)) c h);\n  --rk-accent-mark: oklch(from var(--dt-primary) clamp(var(--rk-mark-lo), l, var(--rk-mark-hi)) c h);\n  --rk-done-mark: oklch(from var(--rk-done-tint) clamp(var(--rk-mark-lo), l, var(--rk-mark-hi)) c h);\n\n  /* Status text. */\n  --rk-agent-text: oklch(from var(--rk-hue-agent) clamp(var(--rk-ink-lo), l, var(--rk-ink-hi)) min(c, var(--rk-ink-c)) h);\n  --rk-running-text: oklch(from var(--rk-hue-running) clamp(var(--rk-ink-lo), l, var(--rk-ink-hi)) min(c, var(--rk-ink-c)) h);\n  --rk-danger-text: oklch(from var(--rk-hue-danger) clamp(var(--rk-ink-lo), l, var(--rk-ink-hi)) min(c, var(--rk-ink-c)) h);\n  --rk-done-text: oklch(from color-mix(in srgb, var(--rk-done-tint) 55%, var(--foreground)) clamp(var(--rk-ink-lo), l, var(--rk-ink-hi)) min(c, var(--rk-ink-c)) h);\n\n  /* Neutral text: the host ladder (--ui-text-primary/-secondary/-tertiary/-quaternary are the\n     base at 94/74/54/36% alpha), composited over the page so it can be measured, then bounded\n     like every other ink. Where the host step already passes it paints unchanged; where it\n     does not (the lighter steps on most light themes, everything on Solarized dark tiles) it\n     steps just far enough toward the foreground. */\n  --rk-text-primary: oklch(from var(--foreground) clamp(var(--rk-ink-lo), l, var(--rk-ink-hi)) min(c, var(--rk-ink-c)) h);\n  --rk-text-secondary: oklch(from color-mix(in srgb, var(--ui-base) 74%, var(--ui-surface-background)) clamp(var(--rk-ink-lo), l, var(--rk-ink-hi)) min(c, var(--rk-ink-c)) h);\n  --rk-text-tertiary: oklch(from color-mix(in srgb, var(--ui-base) 54%, var(--ui-surface-background)) clamp(var(--rk-ink-lo), l, var(--rk-ink-hi)) min(c, var(--rk-ink-c)) h);\n  --rk-text-quaternary: oklch(from color-mix(in srgb, var(--ui-base) 36%, var(--ui-surface-background)) clamp(var(--rk-ink-lo), l, var(--rk-ink-hi)) min(c, var(--rk-ink-c)) h);\n\n  /* Neutral column tones use the same ladder. */\n  --rk-todo: var(--rk-text-secondary);\n  --rk-done: var(--rk-text-tertiary);\n\n  /* Tinted fills. */\n  --rk-attention-fill: color-mix(in srgb, var(--rk-attention) 10%, transparent);\n  /* Opaque over the page color, so the overdue pill keeps its contrast on any tile state. */\n  --rk-danger-fill: color-mix(in srgb, var(--rk-hue-danger) 14%, var(--ui-surface-background));\n  --rk-selection: color-mix(in srgb, var(--dt-primary) 22%, transparent);\n}\n\n/* Task conversation (ticket 08): the soft neutral fill under Hermes messages, the composer and\n   meta pills, and status-pill fills for each tone (attention and danger fills are above). */\n:root,\n.rk-dash {\n  --rk-fill-soft: color-mix(in srgb, var(--foreground) 5%, transparent);\n  --rk-agent-fill: color-mix(in srgb, var(--rk-agent) 13%, transparent);\n  --rk-running-fill: color-mix(in srgb, var(--rk-running) 13%, transparent);\n  --rk-done-fill: color-mix(in srgb, var(--rk-done-mark) 13%, transparent);\n  /* Core chat's composer surface and send button states (styles.css --composer-fill, controls). */\n  --rk-composer-fill: color-mix(in srgb, var(--dt-card) 88%, transparent);\n  --rk-send-hover: color-mix(in srgb, var(--foreground) 90%, transparent);\n  --rk-send-disabled: color-mix(in srgb, var(--foreground) 30%, transparent);\n}\n\n/* Text for screen readers only. Here so the board and the browser task page both have it. */\n.rk-sr {\n  position: absolute;\n  width: 1px;\n  height: 1px;\n  overflow: hidden;\n  clip: rect(0 0 0 0);\n  white-space: nowrap;\n}\n";
+  var tokens_default = "/* Plugin color tokens: the only place the plugin derives a color.\n   Hermes has no status tokens, so each tone starts from a host token and adapts to every\n   preset, light/dark mode, accent and user theme. Defined on :root because host dialogs and\n   popovers portal to <body>, outside .rk-page. Feature CSS uses these and host --ui-* / --dt-*\n   tokens only, never a literal color (ui/test/theme.test.js enforces it). Rules for new\n   features are in docs/agents/build-rules.md. */\n\n/* Lightness bounds (OKLCH L) that keep ink readable on the surface it sits on. Text clears\n   4.5:1 and marks (dots, icons, focus) 3:1. Light surfaces cap ink lightness, dark surfaces\n   floor it, so a theme that already meets the bar paints its own color unchanged. Tiles,\n   pills and a focused tile are a step or two off the page, so they get tighter bounds. Dark\n   inks also cap chroma: a light, saturated red or blue falls outside sRGB, and the clipped\n   color paints darker than its lightness says.\n   Measured worst cases on 2026-11-06 across all 12 presets: a due pill on a focused tile in\n   light themes (surface L about 0.82) and in dark themes (surface L about 0.43, Classic dark). */\n:root {\n  --rk-ink-lo: 0;\n  --rk-ink-hi: 0.5;\n  --rk-ink-c: 0.3;\n  --rk-mark-lo: 0;\n  --rk-mark-hi: 0.6;\n}\n:root.dark {\n  --rk-ink-lo: 0.74;\n  --rk-ink-hi: 1;\n  --rk-ink-c: 0.12;\n  --rk-mark-lo: 0.66;\n  --rk-mark-hi: 1;\n}\n/* Board controls paint their own fill under text, so their inks take the tile bounds. */\n.rk-view-trigger,\n.rk-view-action,\n.rk-lists-trigger,\n.rk-header [data-rk-new],\n.rk-notice-actions > button,\n.rk-card-actions > button {\n  --rk-ink-lo: 0;\n  --rk-ink-hi: 0.43;\n  --rk-ink-c: 0.3;\n  --rk-mark-lo: 0;\n  --rk-mark-hi: 0.5;\n}\n:root.dark .rk-view-trigger,\n:root.dark .rk-view-action,\n:root.dark .rk-lists-trigger,\n:root.dark .rk-header [data-rk-new],\n:root.dark .rk-notice-actions > button,\n:root.dark .rk-card-actions > button {\n  --rk-ink-lo: 0.84;\n  --rk-ink-hi: 1;\n  --rk-ink-c: 0.09;\n  --rk-mark-lo: 0.72;\n  --rk-mark-hi: 1;\n}\n.rk-card,\n.rk-column-count {\n  --rk-ink-lo: 0;\n  --rk-ink-hi: 0.43;\n  --rk-ink-c: 0.3;\n  --rk-mark-lo: 0;\n  --rk-mark-hi: 0.5;\n}\n:root.dark .rk-card,\n:root.dark .rk-column-count {\n  --rk-ink-lo: 0.84;\n  --rk-ink-hi: 1;\n  --rk-ink-c: 0.09;\n  --rk-mark-lo: 0.72;\n  --rk-mark-hi: 1;\n}\n/* A focused light tile is one surface step deeper (--ui-bg-secondary), so its marks cap a little\n   lower. Measured 2026-11-06 (ticket 13): the task-link mark on a focused tile in Solarized light\n   was 2.91:1 at the tile bound. */\n:root:not(.dark) .rk-card:focus-visible {\n  --rk-mark-hi: 0.45;\n}\n\n/* The need-you chip and its menu rows (ticket 34) paint a fill under their text: a hovered chip\n   and a highlighted row sit a step deeper than the page or menu, so light inks take the tile cap.\n   Measured 2026-11-09 in Everforest light at the page cap: the hovered chip 4.16:1, the row title\n   4.31:1. Dark ones already clear the page floor. */\n:root:not(.dark) .rk-attn-chip,\n:root:not(.dark) .rk-attn-item {\n  --rk-ink-hi: 0.43;\n  --rk-mark-hi: 0.5;\n}\n\n/* Task conversation surfaces (ticket 08): pills, message bubbles and the composer sit a step off\n   the dialog like a tile, so their inks take the tile bounds (light and dark, on Desktop and on\n   the browser page). */\n.rk-pill,\n.rk-meta-pill,\n.rk-user-bubble,\n.rk-composer {\n  --rk-ink-lo: 0;\n  --rk-ink-hi: 0.43;\n  --rk-ink-c: 0.3;\n  --rk-mark-lo: 0;\n  --rk-mark-hi: 0.5;\n}\n:root.dark .rk-pill,\n:root.dark .rk-meta-pill,\n:root.dark .rk-user-bubble,\n:root.dark .rk-composer,\n.rk-dash[data-mode='dark'] .rk-pill,\n.rk-dash[data-mode='dark'] .rk-meta-pill,\n.rk-dash[data-mode='dark'] .rk-user-bubble,\n.rk-dash[data-mode='dark'] .rk-composer {\n  --rk-ink-lo: 0.84;\n  --rk-ink-hi: 1;\n  --rk-ink-c: 0.09;\n  --rk-mark-lo: 0.72;\n  --rk-mark-hi: 1;\n}\n\n/* The browser task page (ticket 08) sits on the Hermes web dashboard, which names none of the\n   host tokens above and has no :root.dark. ui/src/task-link/dashboard.css maps the host tokens\n   onto .rk-dash from the dashboard's own theme, and dashboard.jsx sets data-mode from its page\n   color, so the inks derive there with the bounds of that mode. */\n.rk-dash {\n  --rk-ink-lo: 0;\n  --rk-ink-hi: 0.5;\n  --rk-ink-c: 0.3;\n  --rk-mark-lo: 0;\n  --rk-mark-hi: 0.6;\n}\n.rk-dash[data-mode='dark'] {\n  --rk-ink-lo: 0.74;\n  --rk-ink-hi: 1;\n  --rk-ink-c: 0.12;\n  --rk-mark-lo: 0.66;\n  --rk-mark-hi: 1;\n}\n\n/* Custom properties compute where they are declared, so the inks are declared again on each\n   raised surface to pick up its tighter bounds. An element that paints a fill under its own\n   text joins this list and the bounds above. */\n:root,\n.rk-card,\n.rk-column-count,\n.rk-attn-chip,\n.rk-attn-item,\n.rk-dash,\n.rk-pill,\n.rk-meta-pill,\n.rk-user-bubble,\n.rk-composer,\n.rk-view-trigger,\n.rk-view-action,\n.rk-lists-trigger,\n.rk-header [data-rk-new],\n.rk-notice-actions > button,\n.rk-card-actions > button {\n  /* Status hues keep the native Kanban's meaning (Ready blue, running green, attention amber),\n     bent toward the theme accent the way Hermes bends --ui-success. Mixing in oklch keeps the\n     hue when the accent is achromatic (Mono) and settles it into the palette otherwise. */\n  --rk-hue-agent: color-mix(in oklch, var(--ui-blue) 78%, var(--ui-accent));\n  --rk-hue-running: var(--ui-success, color-mix(in oklch, var(--ui-green) 78%, var(--ui-accent)));\n  --rk-hue-attention: color-mix(in oklch, var(--ui-yellow) 85%, var(--ui-accent));\n  --rk-hue-danger: var(--dt-destructive);\n  --rk-hue-focus: var(--dt-composer-ring, var(--dt-ring));\n  /* Done is the host's positive color (ticket 10, design option A). Hermes has no success\n     token for it, and --ui-green carries its own light and dark values. Fills use it as is. */\n  --rk-done-tint: var(--ui-green);\n\n  /* Marks: column dots, icon chips, focus. --rk-focus is offered for focus marks; ticket 10\n     owns the card focus style itself. */\n  --rk-agent: oklch(from var(--rk-hue-agent) clamp(var(--rk-mark-lo), l, var(--rk-mark-hi)) c h);\n  --rk-running: oklch(from var(--rk-hue-running) clamp(var(--rk-mark-lo), l, var(--rk-mark-hi)) c h);\n  --rk-attention: oklch(from var(--rk-hue-attention) clamp(var(--rk-mark-lo), l, var(--rk-mark-hi)) c h);\n  --rk-focus: oklch(from var(--rk-hue-focus) clamp(var(--rk-mark-lo), l, var(--rk-mark-hi)) c h);\n  --rk-accent-mark: oklch(from var(--dt-primary) clamp(var(--rk-mark-lo), l, var(--rk-mark-hi)) c h);\n  --rk-done-mark: oklch(from var(--rk-done-tint) clamp(var(--rk-mark-lo), l, var(--rk-mark-hi)) c h);\n\n  /* Status text. */\n  --rk-agent-text: oklch(from var(--rk-hue-agent) clamp(var(--rk-ink-lo), l, var(--rk-ink-hi)) min(c, var(--rk-ink-c)) h);\n  --rk-running-text: oklch(from var(--rk-hue-running) clamp(var(--rk-ink-lo), l, var(--rk-ink-hi)) min(c, var(--rk-ink-c)) h);\n  --rk-danger-text: oklch(from var(--rk-hue-danger) clamp(var(--rk-ink-lo), l, var(--rk-ink-hi)) min(c, var(--rk-ink-c)) h);\n  --rk-done-text: oklch(from color-mix(in srgb, var(--rk-done-tint) 55%, var(--foreground)) clamp(var(--rk-ink-lo), l, var(--rk-ink-hi)) min(c, var(--rk-ink-c)) h);\n\n  /* Neutral text: the host ladder (--ui-text-primary/-secondary/-tertiary/-quaternary are the\n     base at 94/74/54/36% alpha), composited over the page so it can be measured, then bounded\n     like every other ink. Where the host step already passes it paints unchanged; where it\n     does not (the lighter steps on most light themes, everything on Solarized dark tiles) it\n     steps just far enough toward the foreground. */\n  --rk-text-primary: oklch(from var(--foreground) clamp(var(--rk-ink-lo), l, var(--rk-ink-hi)) min(c, var(--rk-ink-c)) h);\n  --rk-text-secondary: oklch(from color-mix(in srgb, var(--ui-base) 74%, var(--ui-surface-background)) clamp(var(--rk-ink-lo), l, var(--rk-ink-hi)) min(c, var(--rk-ink-c)) h);\n  --rk-text-tertiary: oklch(from color-mix(in srgb, var(--ui-base) 54%, var(--ui-surface-background)) clamp(var(--rk-ink-lo), l, var(--rk-ink-hi)) min(c, var(--rk-ink-c)) h);\n  --rk-text-quaternary: oklch(from color-mix(in srgb, var(--ui-base) 36%, var(--ui-surface-background)) clamp(var(--rk-ink-lo), l, var(--rk-ink-hi)) min(c, var(--rk-ink-c)) h);\n\n  /* Neutral column tones use the same ladder. */\n  --rk-todo: var(--rk-text-secondary);\n  --rk-done: var(--rk-text-tertiary);\n\n  /* Tinted fills. */\n  --rk-attention-fill: color-mix(in srgb, var(--rk-attention) 10%, transparent);\n  /* Opaque over the page color, so the overdue pill keeps its contrast on any tile state. */\n  --rk-danger-fill: color-mix(in srgb, var(--rk-hue-danger) 14%, var(--ui-surface-background));\n  --rk-selection: color-mix(in srgb, var(--dt-primary) 22%, transparent);\n}\n\n/* Task conversation (ticket 08): the soft neutral fill under Hermes messages, the composer and\n   meta pills, and status-pill fills for each tone (attention and danger fills are above). */\n:root,\n.rk-dash {\n  --rk-fill-soft: color-mix(in srgb, var(--foreground) 5%, transparent);\n  --rk-agent-fill: color-mix(in srgb, var(--rk-agent) 13%, transparent);\n  --rk-running-fill: color-mix(in srgb, var(--rk-running) 13%, transparent);\n  --rk-done-fill: color-mix(in srgb, var(--rk-done-mark) 13%, transparent);\n  /* Core chat's composer surface and send button states (styles.css --composer-fill, controls). */\n  --rk-composer-fill: color-mix(in srgb, var(--dt-card) 88%, transparent);\n  --rk-send-hover: color-mix(in srgb, var(--foreground) 90%, transparent);\n  --rk-send-disabled: color-mix(in srgb, var(--foreground) 30%, transparent);\n}\n\n/* Text for screen readers only. Here so the board and the browser task page both have it. */\n.rk-sr {\n  position: absolute;\n  width: 1px;\n  height: 1px;\n  overflow: hidden;\n  clip: rect(0 0 0 0);\n  white-space: nowrap;\n}\n";
 
   // src/styles.js
   var sheets = [tokens_default];
@@ -655,11 +655,11 @@
   }
 
   // src/task-link/dashboard.css
-  var dashboard_default = "/* Browser page only. The web dashboard names none of the Desktop host tokens, so .rk-dash maps\n   each one the shared tokens (ui/src/theme/tokens.css) and the task CSS use onto the dashboard's\n   own theme tokens; the derived --rk-* tokens then compute on .rk-dash (dashboard.jsx sets\n   data-mode from the page color for their dark bounds). Every name task.css, task-link.css and\n   tokens.css read must be mapped here; ui/test/dashboard-tokens.test.js checks it. */\n.rk-dash {\n  /* The dashboard's --foreground is a highlight layer; its text color is --midground. */\n  --foreground: var(--midground);\n  --ui-base: var(--midground);\n  --ui-surface-background: var(--background);\n  --ui-accent: var(--color-primary);\n  --ui-blue: var(--color-primary);\n  --ui-green: var(--color-success);\n  --ui-success: var(--color-success);\n  --ui-yellow: var(--color-warning);\n  --ui-stroke-tertiary: var(--color-border);\n  --dt-primary: var(--color-primary);\n  --dt-destructive: var(--color-destructive);\n  --dt-ring: var(--color-ring);\n  --dt-composer-ring: var(--color-ring);\n  --dt-user-bubble: var(--color-muted);\n  --dt-card: var(--color-card);\n  --dt-background: var(--background);\n  --ui-stroke-secondary: var(--color-border);\n  --dt-user-bubble-border: var(--color-border);\n  --ui-text-tertiary: color-mix(in srgb, var(--midground) 54%, transparent);\n  --ui-bg-chrome: var(--background);\n  color: var(--foreground);\n  font-family: var(--theme-font-sans, var(--font-sans, system-ui));\n}\n.rk-dash-page {\n  box-sizing: border-box;\n  width: 100%;\n  max-width: 47.5rem;\n  margin: 0 auto;\n  min-height: calc(100dvh - 8rem);\n}\n/* The page scrolls instead of the body; the composer stays in reach at the bottom. */\n.rk-dash .rk-task-body {\n  overflow: visible;\n}\n.rk-dash .rk-task-foot {\n  position: sticky;\n  bottom: 0;\n  background: var(--ui-surface-background);\n}\n\n.rk-dash .rk-btn {\n  display: inline-flex;\n  align-items: center;\n  justify-content: center;\n  gap: 0.375rem;\n  min-height: 2.25rem;\n  border: 1px solid transparent;\n  border-radius: 0.5rem;\n  padding: 0 0.875rem;\n  font: inherit;\n  font-size: 0.8125rem;\n  font-weight: 600;\n  cursor: pointer;\n  background: var(--color-primary);\n  color: var(--color-primary-foreground);\n}\n.rk-dash .rk-btn[data-variant='secondary'] {\n  border-color: var(--color-border);\n  background: transparent;\n  color: var(--midground);\n}\n.rk-dash .rk-btn[data-variant='ghost'] {\n  background: transparent;\n  color: var(--color-muted-foreground);\n}\n.rk-dash .rk-btn[data-variant='text'] {\n  border-color: transparent;\n  background: transparent;\n  color: var(--rk-text-secondary);\n  text-underline-offset: 4px;\n}\n.rk-dash .rk-btn[data-variant='text']:hover:not(:disabled) {\n  color: var(--foreground);\n  text-decoration: underline;\n}\n.rk-dash .rk-btn[data-size='sm'] {\n  min-height: 1.5rem;\n  padding: 0 0.625rem;\n  font-size: 0.75rem;\n}\n.rk-dash .rk-btn[data-size='xs'] {\n  min-height: 1.75rem;\n  padding: 0 0.625rem;\n  font-size: 0.75rem;\n}\n.rk-dash .rk-btn:disabled {\n  cursor: default;\n  opacity: 0.5;\n}\n.rk-dash .rk-btn:focus-visible {\n  outline: 2px solid var(--rk-focus);\n  outline-offset: 2px;\n}\n.rk-dash .rk-badge {\n  display: inline-flex;\n  align-items: center;\n  border: 1px solid var(--ui-stroke-tertiary);\n  border-radius: 999px;\n  padding: 0.0625rem 0.5rem;\n  font-size: 0.6875rem;\n  color: var(--rk-text-secondary);\n}\n.rk-dash .rk-tl-occurrence select {\n  min-height: 2rem;\n  font-size: 0.8125rem;\n}\n/* 16px keeps iOS Safari from zooming into the reply field. */\n.rk-dash .rk-composer-field {\n  font-size: 1rem;\n}\n/* Model and reasoning for the reply: the words get the reply box's whole width, and one chip\n   under them names the choice, with Send at the far end of the same line. */\n.rk-dash .rk-composer {\n  flex-wrap: wrap;\n  border-radius: 0.875rem;\n}\n.rk-dash .rk-composer-field {\n  flex: 1 0 100%;\n}\n.rk-dash .rk-composer-model {\n  order: 1;\n  flex: 1 1 0;\n  max-width: none;\n}\n.rk-dash .rk-composer > .rk-send,\n.rk-dash .rk-composer > .rk-btn {\n  order: 2;\n}\n.rk-dash .rk-model-picker {\n  display: flex;\n  min-width: 0;\n}\n.rk-dash .rk-model-chip {\n  display: inline-flex;\n  min-width: 0;\n  max-width: 100%;\n  min-height: 2rem;\n  align-items: center;\n  gap: 0.375rem;\n  border: 0;\n  border-radius: 0.5rem;\n  background: transparent;\n  padding: 0 0.375rem 0 0;\n  font: inherit;\n  font-size: 0.875rem;\n  color: var(--rk-text-secondary);\n  cursor: pointer;\n}\n.rk-dash .rk-model-chip-name {\n  overflow: hidden;\n  font-weight: 500;\n  color: var(--rk-text-primary);\n  text-overflow: ellipsis;\n  white-space: nowrap;\n}\n.rk-dash .rk-model-chip-effort {\n  flex-shrink: 0;\n  white-space: nowrap;\n}\n.rk-dash .rk-model-chip:disabled {\n  cursor: default;\n  opacity: 0.6;\n}\n.rk-dash .rk-model-chip:focus-visible,\n.rk-dash .rk-sheet button:focus-visible {\n  outline: 2px solid var(--rk-focus);\n  outline-offset: 2px;\n}\n\n/* The sheet: up from the bottom edge, over a veil that closes it. */\n.rk-dash .rk-sheet-veil {\n  position: fixed;\n  z-index: 59;\n  inset: 0;\n  background: color-mix(in srgb, var(--dt-background) 72%, transparent);\n}\n.rk-dash .rk-sheet {\n  position: fixed;\n  z-index: 60;\n  right: 0;\n  bottom: 0;\n  left: 0;\n  display: flex;\n  box-sizing: border-box;\n  max-width: 30rem;\n  max-height: 85dvh;\n  flex-direction: column;\n  gap: 1rem;\n  margin: 0 auto;\n  border: 1px solid var(--ui-stroke-secondary);\n  border-bottom: 0;\n  border-radius: 1.25rem 1.25rem 0 0;\n  background: linear-gradient(var(--dt-card), var(--dt-card)), var(--dt-background);\n  /* On a short screen (a phone on its side) the whole sheet scrolls, so nothing falls off it. */\n  overflow-y: auto;\n  padding: 0.5rem 1rem calc(1rem + env(safe-area-inset-bottom, 0px));\n  color: var(--rk-text-primary);\n  animation: rk-sheet-up 180ms ease-out;\n}\n.rk-dash .rk-sheet:focus {\n  outline: none;\n}\n/* The sheet lives in the sticky footer: while it is open that footer rises above the page's own\n   bars, so the veil and the sheet cover them. */\n.rk-dash .rk-task-foot:has(.rk-sheet) {\n  z-index: 60;\n}\n.rk-dash .rk-sheet-note {\n  margin: 0;\n  border-top: 1px solid var(--ui-stroke-secondary);\n  padding: 0.75rem 1rem;\n  font-size: 0.8125rem;\n  color: var(--rk-text-secondary);\n}\n@keyframes rk-sheet-up {\n  from {\n    transform: translateY(1.5rem);\n    opacity: 0;\n  }\n}\n@media (prefers-reduced-motion: reduce) {\n  .rk-dash .rk-sheet {\n    animation: none;\n  }\n}\n.rk-dash .rk-sheet button {\n  font: inherit;\n  cursor: pointer;\n}\n.rk-dash .rk-sheet-head {\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n  gap: 0.75rem;\n  padding: 0 0.25rem;\n}\n.rk-dash .rk-sheet-title {\n  margin: 0;\n  font-size: 1.0625rem;\n  font-weight: 600;\n}\n.rk-dash .rk-sheet-done {\n  min-height: 2.75rem;\n  border: 0;\n  border-radius: 0.5rem;\n  background: transparent;\n  padding: 0 0.375rem;\n  font-size: 0.9375rem;\n  font-weight: 600;\n  color: var(--rk-text-primary);\n}\n.rk-dash .rk-sheet-group {\n  display: flex;\n  flex-shrink: 0;\n  flex-direction: column;\n  gap: 0.5rem;\n}\n/* Only the model list gives way when the sheet runs out of height: it scrolls. */\n.rk-dash .rk-sheet-grow {\n  min-height: 8rem;\n  flex: 1 1 auto;\n}\n.rk-dash .rk-sheet-label {\n  padding: 0 0.25rem;\n  font-size: 0.75rem;\n  font-weight: 600;\n  letter-spacing: 0.06em;\n  text-transform: uppercase;\n  color: var(--rk-text-secondary);\n}\n.rk-dash .rk-sheet-efforts {\n  display: grid;\n  grid-template-columns: repeat(4, minmax(0, 1fr));\n  gap: 0.25rem;\n  border-radius: 0.875rem;\n  background: var(--rk-fill-soft);\n  padding: 0.25rem;\n}\n.rk-dash .rk-sheet-efforts button {\n  min-height: 2.75rem;\n  border: 0;\n  border-radius: 0.625rem;\n  background: transparent;\n  padding: 0 0.25rem;\n  font-size: 0.875rem;\n  color: var(--rk-text-secondary);\n}\n.rk-dash .rk-sheet-efforts button[aria-pressed='true'] {\n  background: var(--foreground);\n  font-weight: 600;\n  color: var(--dt-background);\n}\n.rk-dash .rk-sheet-models {\n  display: flex;\n  min-height: 0;\n  flex-direction: column;\n  overflow-y: auto;\n  overscroll-behavior: contain;\n  border-radius: 0.875rem;\n  background: var(--rk-fill-soft);\n}\n.rk-dash .rk-sheet-provider {\n  display: flex;\n  flex-direction: column;\n  border-top: 1px solid var(--ui-stroke-secondary);\n}\n.rk-dash .rk-sheet-provider-name {\n  padding: 0.75rem 1rem 0.25rem;\n  font-size: 0.75rem;\n  color: var(--rk-text-secondary);\n}\n.rk-dash .rk-sheet-row {\n  display: flex;\n  min-height: 3rem;\n  flex-shrink: 0;\n  align-items: center;\n  justify-content: space-between;\n  gap: 0.75rem;\n  border: 0;\n  background: transparent;\n  padding: 0.25rem 1rem;\n  font-size: 0.9375rem;\n  color: var(--rk-text-primary);\n  text-align: left;\n}\n.rk-dash .rk-sheet-row[aria-pressed='true'] {\n  background: var(--rk-selection);\n  font-weight: 600;\n}\n.rk-dash .rk-sheet-row-text {\n  display: flex;\n  min-width: 0;\n  flex-direction: column;\n  gap: 0.125rem;\n  overflow-wrap: anywhere;\n}\n.rk-dash .rk-sheet-sub {\n  font-size: 0.75rem;\n  font-weight: 400;\n  color: var(--rk-text-secondary);\n}\n\n.rk-dash .rk-dash-dot {\n  display: inline-block;\n  width: 0.375rem;\n  height: 0.375rem;\n  flex-shrink: 0;\n  border-radius: 999px;\n}\n.rk-dash .rk-dash-loader {\n  display: inline-block;\n  width: 1.5rem;\n  height: 1.5rem;\n  border: 2px solid var(--ui-stroke-secondary);\n  border-top-color: var(--rk-text-tertiary);\n  border-radius: 999px;\n  animation: rk-dash-spin 0.9s linear infinite;\n}\n@keyframes rk-dash-spin {\n  to {\n    transform: rotate(360deg);\n  }\n}\n/* Core's assistant prose rhythm, which the dashboard does not ship. */\n.rk-dash .rk-msg-prose {\n  padding-left: 0.75rem;\n  font-size: var(--conversation-text-font-size);\n  line-height: 1.5;\n}\n.rk-dash .rk-dash-md p {\n  margin: 0.7rem 0 0;\n  white-space: pre-wrap;\n}\n.rk-dash .rk-dash-md > :first-child {\n  margin-top: 0;\n}\n.rk-dash .rk-dash-md a {\n  color: var(--rk-agent-text);\n  text-decoration: underline;\n  text-underline-offset: 2px;\n  overflow-wrap: anywhere;\n}\n\n.rk-dash .rk-dash-icon {\n  flex-shrink: 0;\n}\n.rk-dash .rk-dash-icon[data-spinning='true'] {\n  animation: rk-dash-spin 0.8s linear infinite;\n}\n\n/* A result's Markdown shapes on the page. */\n.rk-dash .rk-dash-md :where(h3) {\n  margin: 0.9rem 0 0;\n  font-size: 1em;\n  font-weight: 600;\n}\n.rk-dash .rk-dash-md :where(ul, ol) {\n  margin: 0.5rem 0 0;\n  padding-left: 1.25rem;\n}\n/* The dashboard resets list markers and paints code in its own colors: set both here. */\n.rk-dash .rk-dash-md ul {\n  list-style: disc;\n}\n.rk-dash .rk-dash-md ol {\n  list-style: decimal;\n}\n.rk-dash .rk-dash-md li + li {\n  margin-top: 0.2rem;\n}\n.rk-dash .rk-dash-md :where(code, pre) {\n  border-radius: 0.25rem;\n  background: color-mix(in srgb, currentColor 9%, transparent);\n  font-family: var(--font-mono);\n  font-size: 0.9em;\n  color: inherit;\n}\n.rk-dash .rk-dash-md code {\n  padding: 0.05rem 0.25rem;\n}\n.rk-dash .rk-dash-md pre {\n  margin: 0.7rem 0 0;\n  overflow-x: auto;\n  padding: 0.5rem 0.625rem;\n}\n/* No hover on a phone: the time a line happened is always there. */\n.rk-dash .rk-activity-time {\n  opacity: 1;\n}\n/* Fingers need 44px: buttons, the send button and the occurrence picker on touch screens. */\n@media (pointer: coarse) {\n  .rk-dash .rk-btn[data-size='sm'],\n  .rk-dash .rk-btn[data-size='xs'] {\n    min-height: 2.75rem;\n    padding: 0 1rem;\n    font-size: 0.875rem;\n  }\n  .rk-dash .rk-send {\n    width: 2.75rem;\n    height: 2.75rem;\n  }\n  .rk-dash .rk-composer {\n    align-items: center;\n  }\n  .rk-dash .rk-tl-occurrence select {\n    min-height: 2.75rem;\n  }\n  /* A full touch target for the chip, whatever the dashboard's root font size. */\n  .rk-dash .rk-model-chip {\n    min-height: max(2.75rem, 44px);\n  }\n  /* The words on their own line: no need to centre them on Send any more. */\n  .rk-dash .rk-composer {\n    padding: 0.5rem 0.375rem 0.25rem 0.75rem;\n  }\n}\n";
+  var dashboard_default = "/* Browser page only. The web dashboard names none of the Desktop host tokens, so .rk-dash maps\n   each one the shared tokens (ui/src/theme/tokens.css) and the task CSS use onto the dashboard's\n   own theme tokens; the derived --rk-* tokens then compute on .rk-dash (dashboard.jsx sets\n   data-mode from the page color for their dark bounds). Every name task.css, task-link.css and\n   tokens.css read must be mapped here; ui/test/dashboard-tokens.test.js checks it. */\n.rk-dash {\n  /* The dashboard's --foreground is a highlight layer; its text color is --midground. */\n  --foreground: var(--midground);\n  --ui-base: var(--midground);\n  --ui-surface-background: var(--background);\n  --ui-accent: var(--color-primary);\n  --ui-blue: var(--color-primary);\n  --ui-green: var(--color-success);\n  --ui-success: var(--color-success);\n  --ui-yellow: var(--color-warning);\n  --ui-stroke-tertiary: var(--color-border);\n  --dt-primary: var(--color-primary);\n  --dt-destructive: var(--color-destructive);\n  --dt-ring: var(--color-ring);\n  --dt-composer-ring: var(--color-ring);\n  --dt-user-bubble: var(--color-muted);\n  --dt-card: var(--color-card);\n  --dt-background: var(--background);\n  --ui-stroke-secondary: var(--color-border);\n  --dt-user-bubble-border: var(--color-border);\n  --ui-text-tertiary: color-mix(in srgb, var(--midground) 54%, transparent);\n  --ui-bg-chrome: var(--background);\n  color: var(--foreground);\n  font-family: var(--theme-font-sans, var(--font-sans, system-ui));\n}\n.rk-dash-page {\n  box-sizing: border-box;\n  width: 100%;\n  max-width: 47.5rem;\n  margin: 0 auto;\n  min-height: calc(100dvh - 8rem);\n}\n/* The page scrolls instead of the body; the composer stays in reach at the bottom. */\n.rk-dash .rk-task-body {\n  overflow: visible;\n}\n.rk-dash .rk-task-foot {\n  position: sticky;\n  bottom: 0;\n  background: var(--ui-surface-background);\n}\n\n.rk-dash .rk-btn {\n  display: inline-flex;\n  align-items: center;\n  justify-content: center;\n  gap: 0.375rem;\n  min-height: 2.25rem;\n  border: 1px solid transparent;\n  border-radius: 0.5rem;\n  padding: 0 0.875rem;\n  font: inherit;\n  font-size: 0.8125rem;\n  font-weight: 600;\n  cursor: pointer;\n  background: var(--color-primary);\n  color: var(--color-primary-foreground);\n}\n.rk-dash .rk-btn[data-variant='secondary'] {\n  border-color: var(--color-border);\n  background: transparent;\n  color: var(--midground);\n}\n.rk-dash .rk-btn[data-variant='ghost'] {\n  background: transparent;\n  color: var(--color-muted-foreground);\n}\n.rk-dash .rk-btn[data-variant='text'] {\n  border-color: transparent;\n  background: transparent;\n  color: var(--rk-text-secondary);\n  text-underline-offset: 4px;\n}\n.rk-dash .rk-btn[data-variant='text']:hover:not(:disabled) {\n  color: var(--foreground);\n  text-decoration: underline;\n}\n.rk-dash .rk-btn[data-size='sm'] {\n  min-height: 1.5rem;\n  padding: 0 0.625rem;\n  font-size: 0.75rem;\n}\n.rk-dash .rk-btn[data-size='xs'] {\n  min-height: 1.75rem;\n  padding: 0 0.625rem;\n  font-size: 0.75rem;\n}\n.rk-dash .rk-btn:disabled {\n  cursor: default;\n  opacity: 0.5;\n}\n.rk-dash .rk-btn:focus-visible {\n  outline: 2px solid var(--rk-focus);\n  outline-offset: 2px;\n}\n.rk-dash .rk-badge {\n  display: inline-flex;\n  align-items: center;\n  border: 1px solid var(--ui-stroke-tertiary);\n  border-radius: 999px;\n  padding: 0.0625rem 0.5rem;\n  font-size: 0.6875rem;\n  color: var(--rk-text-secondary);\n}\n.rk-dash .rk-tl-occurrence select {\n  min-height: 2rem;\n  font-size: 0.8125rem;\n}\n/* 16px keeps iOS Safari from zooming into the reply field. */\n.rk-dash .rk-composer-field {\n  font-size: 1rem;\n}\n\n.rk-dash .rk-dash-dot {\n  display: inline-block;\n  width: 0.375rem;\n  height: 0.375rem;\n  flex-shrink: 0;\n  border-radius: 999px;\n}\n.rk-dash .rk-dash-loader {\n  display: inline-block;\n  width: 1.5rem;\n  height: 1.5rem;\n  border: 2px solid var(--ui-stroke-secondary);\n  border-top-color: var(--rk-text-tertiary);\n  border-radius: 999px;\n  animation: rk-dash-spin 0.9s linear infinite;\n}\n@keyframes rk-dash-spin {\n  to {\n    transform: rotate(360deg);\n  }\n}\n/* Core's assistant prose rhythm, which the dashboard does not ship. */\n.rk-dash .rk-msg-prose {\n  padding-left: 0.75rem;\n  font-size: var(--conversation-text-font-size);\n  line-height: 1.5;\n}\n.rk-dash .rk-dash-md p {\n  margin: 0.7rem 0 0;\n  white-space: pre-wrap;\n}\n.rk-dash .rk-dash-md > :first-child {\n  margin-top: 0;\n}\n.rk-dash .rk-dash-md a {\n  color: var(--rk-agent-text);\n  text-decoration: underline;\n  text-underline-offset: 2px;\n  overflow-wrap: anywhere;\n}\n\n.rk-dash .rk-dash-icon {\n  flex-shrink: 0;\n}\n.rk-dash .rk-dash-icon[data-spinning='true'] {\n  animation: rk-dash-spin 0.8s linear infinite;\n}\n\n/* A result's Markdown shapes on the page. */\n.rk-dash .rk-dash-md :where(h3) {\n  margin: 0.9rem 0 0;\n  font-size: 1em;\n  font-weight: 600;\n}\n.rk-dash .rk-dash-md :where(ul, ol) {\n  margin: 0.5rem 0 0;\n  padding-left: 1.25rem;\n}\n/* The dashboard resets list markers and paints code in its own colors: set both here. */\n.rk-dash .rk-dash-md ul {\n  list-style: disc;\n}\n.rk-dash .rk-dash-md ol {\n  list-style: decimal;\n}\n.rk-dash .rk-dash-md li + li {\n  margin-top: 0.2rem;\n}\n.rk-dash .rk-dash-md :where(code, pre) {\n  border-radius: 0.25rem;\n  background: color-mix(in srgb, currentColor 9%, transparent);\n  font-family: var(--font-mono);\n  font-size: 0.9em;\n  color: inherit;\n}\n.rk-dash .rk-dash-md code {\n  padding: 0.05rem 0.25rem;\n}\n.rk-dash .rk-dash-md pre {\n  margin: 0.7rem 0 0;\n  overflow-x: auto;\n  padding: 0.5rem 0.625rem;\n}\n/* No hover on a phone: the time a line happened is always there. */\n.rk-dash .rk-activity-time {\n  opacity: 1;\n}\n/* Fingers need 44px: buttons, the send button and the occurrence picker on touch screens. */\n@media (pointer: coarse) {\n  .rk-dash .rk-btn[data-size='sm'],\n  .rk-dash .rk-btn[data-size='xs'] {\n    min-height: 2.75rem;\n    padding: 0 1rem;\n    font-size: 0.875rem;\n  }\n  .rk-dash .rk-send {\n    width: 2.75rem;\n    height: 2.75rem;\n  }\n  /* The bar grows with its button, and the text sits on the button's centre line. */\n  .rk-dash .rk-composer {\n    align-items: center;\n    padding: 0.25rem 0.25rem 0.25rem 0.75rem;\n  }\n  .rk-dash .rk-tl-occurrence select {\n    min-height: 2.75rem;\n  }\n}\n";
 
   // src/lib/markdown-lite.js
   var INLINE = /(`[^`\n]+`|\*\*[^*\s](?:[^*\n]*[^*\s])?\*\*|(?<![\w*])\*[A-Za-z0-9](?:[^*\n]*[^*\s])?\*(?![\w*]))/g;
-  function inlineSpans(text2) {
+  function inlineSpans(text) {
     const spans2 = [];
     const plain = (piece, style) => {
       for (const part of linkParts(piece)) {
@@ -668,7 +668,7 @@
         } else spans2.push({ href: part.href, label: part.label, ...style });
       }
     };
-    const source = String(text2 ?? "");
+    const source = String(text ?? "");
     let at = 0;
     for (const match of source.matchAll(INLINE)) {
       if (match.index > at) plain(source.slice(at, match.index), {});
@@ -789,15 +789,15 @@
   function Loader({ className, label = "Loading" }) {
     return createElement("span", { className: join("rk-dash-loader", className), role: "status", "aria-label": label });
   }
-  var spans = (text2) => inlineSpans(text2).map((span, index) => {
+  var spans = (text) => inlineSpans(text).map((span, index) => {
     const inner = span.href ? createElement("a", { href: span.href, rel: "noopener noreferrer", target: "_blank" }, span.label) : span.code != null ? createElement("code", null, span.code) : span.text;
     return span.bold ? createElement("strong", { key: index }, inner) : span.italic ? createElement("em", { key: index }, inner) : typeof inner === "string" ? inner : createElement("span", { key: index }, inner);
   });
-  function MessageTextContent({ text: text2 }) {
+  function MessageTextContent({ text }) {
     return createElement(
       "div",
       { className: "aui-md rk-dash-md" },
-      ...markdownBlocks(text2).map(
+      ...markdownBlocks(text).map(
         (block, index) => block.type === "pre" ? createElement("pre", { key: index }, block.text) : block.type === "ul" || block.type === "ol" ? createElement(block.type, { key: index, start: block.start }, ...block.items.map((item, at) => createElement("li", { key: at }, ...spans(item)))) : createElement(block.type === "h" ? "h3" : "p", { key: index }, ...spans(block.text))
       )
     );
@@ -1108,233 +1108,9 @@
     ] });
   }
 
-  // src/lib/model-choice.js
-  var DEFAULT_CHOICE = Object.freeze({ model: null, provider: null, effort: null });
-  var EFFORTS = /* @__PURE__ */ new Set(["none", "minimal", "low", "medium", "high", "xhigh", "max", "ultra"]);
-  var text = (value) => typeof value === "string" && value.trim() ? value.trim() : null;
-  function normalChoice(value) {
-    const model = text(value?.model);
-    const provider = text(value?.provider);
-    const effort = text(value?.effort);
-    const named = model && provider;
-    return { model: named ? model : null, provider: named ? provider : null, effort: EFFORTS.has(effort) ? effort : null };
-  }
-  function choiceLabel(choice, effortLabel = (value) => value, inherit = "Profile default") {
-    const c = normalChoice(choice);
-    const base = c.model ?? inherit;
-    return c.effort ? `${base} \xB7 ${effortLabel(c.effort)}` : base;
-  }
-  var EFFORT_OPTIONS = [
-    ["none", "Off"],
-    ["minimal", "Minimal"],
-    ["low", "Low"],
-    ["medium", "Medium"],
-    ["high", "High"],
-    ["xhigh", "Extra high"]
-  ];
-  var SEPARATOR = "";
-  var modelValue = (provider, model) => provider && model ? `${provider}${SEPARATOR}${model}` : "";
-  function parseModelValue(value) {
-    const at = String(value ?? "").indexOf(SEPARATOR);
-    return at > 0 ? { provider: value.slice(0, at), model: value.slice(at + 1) } : { provider: null, model: null };
-  }
-  function pickerOptions(payload, choice) {
-    const current = normalChoice(choice);
-    const groups = [];
-    let caps = null;
-    for (const provider of Array.isArray(payload?.providers) ? payload.providers : []) {
-      if (!provider?.slug || provider.authenticated === false) continue;
-      const listed = (Array.isArray(provider.models) ? provider.models : []).filter((model) => typeof model === "string" && model);
-      const featured = (Array.isArray(provider.featured_models) ? provider.featured_models : []).filter((model) => listed.includes(model));
-      const models = [...featured, ...listed.filter((model) => !featured.includes(model))];
-      if (current.provider === provider.slug && current.model) {
-        if (!models.includes(current.model)) models.unshift(current.model);
-        caps = provider.capabilities?.[current.model] ?? null;
-      }
-      if (models.length) groups.push({ key: provider.slug, name: provider.name || provider.slug, models: models.map((model) => ({ value: modelValue(provider.slug, model), label: model })) });
-    }
-    const chosen = modelValue(current.provider, current.model);
-    if (chosen && !groups.some((group) => group.models.some((model) => model.value === chosen))) {
-      groups.unshift({ key: `${current.provider}:current`, name: current.provider, models: [{ value: chosen, label: current.model }] });
-    }
-    const reasoning = caps ? caps.reasoning !== false : true;
-    const efforts = !reasoning ? [] : EFFORT_OPTIONS.filter(([value]) => value !== "none" || caps?.can_disable_reasoning !== false);
-    if (current.effort && !efforts.some(([value]) => value === current.effort)) efforts.push([current.effort, current.effort]);
-    return { groups, efforts, value: chosen };
-  }
-
-  // src/task-link/dashboard/ModelPicker.jsx
-  var catalogs = /* @__PURE__ */ new Map();
-  function useCatalog(again) {
-    const profile = new URLSearchParams(window.location.search).get("profile") ?? "";
-    const [state, setState] = useState(() => catalogs.has(profile) ? { payload: catalogs.get(profile), status: "ready" } : { payload: null, status: "loading" });
-    useEffect(() => {
-      if (catalogs.has(profile)) return void setState({ payload: catalogs.get(profile), status: "ready" });
-      let live = true;
-      setState({ payload: null, status: "loading" });
-      const at = window.location.pathname.indexOf(TASK_PAGE);
-      const prefix = at > 0 ? window.location.pathname.slice(0, at) : "";
-      const failed = () => live && setState({ payload: null, status: "failed" });
-      const read = window.__HERMES_PLUGIN_SDK__?.authedFetch(`${prefix}/api/model/options?explicit_only=true${profile ? `&profile=${encodeURIComponent(profile)}` : ""}`, { cache: "no-store" });
-      if (!read) return void failed();
-      read.then((response) => response.ok ? response.json() : null).then((body) => {
-        if (!body?.providers) return failed();
-        catalogs.set(profile, body);
-        if (live) setState({ payload: body, status: "ready" });
-      }).catch(failed);
-      return () => {
-        live = false;
-      };
-    }, [profile, again]);
-    return state;
-  }
-  var EFFORT_WORDS = Object.fromEntries(EFFORT_OPTIONS);
-  var effortWord = (effort) => EFFORT_WORDS[effort] ?? effort;
-  function ModelPicker({ choice, onChange, disabled = false, labelPrefix = "Model and reasoning" }) {
-    const [open, setOpen] = useState(false);
-    const [again, setAgain] = useState(0);
-    const { payload, status } = useCatalog(again);
-    const chip = useRef(null);
-    const sheet = useRef(null);
-    const current = normalChoice(choice);
-    const { groups, efforts, value } = pickerOptions(payload, current);
-    const label = choiceLabel(current, effortWord);
-    const close = () => {
-      setOpen(false);
-      chip.current?.focus();
-    };
-    const show = () => {
-      if (status === "failed") setAgain((count) => count + 1);
-      setOpen(true);
-    };
-    const pick = (modelValue2) => {
-      if (modelValue2 === value) return;
-      const next = parseModelValue(modelValue2);
-      const fits = pickerOptions(payload, { ...next, effort: null }).efforts.some(([effort]) => effort === current.effort);
-      onChange({ ...next, effort: fits ? current.effort : null });
-    };
-    useEffect(() => {
-      if (disabled) setOpen(false);
-    }, [disabled]);
-    useEffect(() => {
-      if (!open) return void 0;
-      (sheet.current?.querySelector('.rk-sheet-models [aria-pressed="true"]') ?? sheet.current?.querySelector("button"))?.focus();
-      const root = document.documentElement;
-      const before = root.style.overflow;
-      root.style.overflow = "hidden";
-      const onKey = (event) => {
-        if (event.key === "Escape") {
-          event.stopPropagation();
-          return close();
-        }
-        if (event.key !== "Tab") return;
-        const stops = [...sheet.current?.querySelectorAll("button") ?? []];
-        const first = stops[0];
-        const last = stops[stops.length - 1];
-        const inside = sheet.current?.contains(document.activeElement) && document.activeElement !== sheet.current;
-        if (!inside || event.shiftKey && document.activeElement === first) {
-          event.preventDefault();
-          (event.shiftKey ? last : first)?.focus();
-        } else if (!event.shiftKey && document.activeElement === last) {
-          event.preventDefault();
-          first?.focus();
-        }
-      };
-      document.addEventListener("keydown", onKey, true);
-      return () => {
-        root.style.overflow = before;
-        document.removeEventListener("keydown", onKey, true);
-      };
-    }, [open]);
-    useEffect(() => {
-      if (open && status === "ready" && !sheet.current?.contains(document.activeElement)) {
-        sheet.current?.querySelector('.rk-sheet-models [aria-pressed="true"]')?.focus();
-      }
-    }, [open, status]);
-    return /* @__PURE__ */ jsxs("span", { className: "rk-model-picker", children: [
-      /* @__PURE__ */ jsxs(
-        "button",
-        {
-          "aria-expanded": open,
-          "aria-haspopup": "dialog",
-          "aria-label": `${labelPrefix}: ${label}`,
-          className: "rk-model-chip",
-          disabled,
-          onClick: show,
-          ref: chip,
-          type: "button",
-          children: [
-            /* @__PURE__ */ jsx("span", { className: "rk-model-chip-name", children: current.model ?? "Profile default" }),
-            current.effort && /* @__PURE__ */ jsxs("span", { className: "rk-model-chip-effort", children: [
-              "\xB7 ",
-              effortWord(current.effort)
-            ] }),
-            /* @__PURE__ */ jsx(Codicon, { name: "chevron-down", size: "0.75rem" })
-          ]
-        }
-      ),
-      open && /* @__PURE__ */ jsxs(Fragment2, { children: [
-        /* @__PURE__ */ jsx("div", { "aria-hidden": true, className: "rk-sheet-veil", onClick: close }),
-        /* @__PURE__ */ jsxs("div", { "aria-labelledby": "rk-sheet-title", "aria-modal": "true", className: "rk-sheet", ref: sheet, role: "dialog", tabIndex: -1, children: [
-          /* @__PURE__ */ jsxs("div", { className: "rk-sheet-head", children: [
-            /* @__PURE__ */ jsx("h2", { className: "rk-sheet-title", id: "rk-sheet-title", children: "For this reply" }),
-            /* @__PURE__ */ jsx("button", { className: "rk-sheet-done", onClick: close, type: "button", children: "Done" })
-          ] }),
-          efforts.length > 0 && /* @__PURE__ */ jsxs("div", { className: "rk-sheet-group", children: [
-            /* @__PURE__ */ jsx("span", { className: "rk-sheet-label", id: "rk-sheet-reasoning", children: "Reasoning" }),
-            /* @__PURE__ */ jsxs("div", { "aria-labelledby": "rk-sheet-reasoning", className: "rk-sheet-efforts", role: "group", children: [
-              /* @__PURE__ */ jsx("button", { "aria-pressed": !current.effort, onClick: () => onChange({ model: current.model, provider: current.provider, effort: null }), type: "button", children: "Default" }),
-              efforts.map(([effort, word]) => /* @__PURE__ */ jsx(
-                "button",
-                {
-                  "aria-pressed": current.effort === effort,
-                  onClick: () => onChange({ model: current.model, provider: current.provider, effort }),
-                  type: "button",
-                  children: word
-                },
-                effort
-              ))
-            ] })
-          ] }),
-          /* @__PURE__ */ jsxs("div", { className: "rk-sheet-group rk-sheet-grow", children: [
-            /* @__PURE__ */ jsx("span", { className: "rk-sheet-label", id: "rk-sheet-model", children: "Model" }),
-            /* @__PURE__ */ jsxs("div", { "aria-labelledby": "rk-sheet-model", className: "rk-sheet-models", role: "group", children: [
-              /* @__PURE__ */ jsxs("button", { "aria-pressed": !value, className: "rk-sheet-row", onClick: () => pick(""), type: "button", children: [
-                /* @__PURE__ */ jsxs("span", { className: "rk-sheet-row-text", children: [
-                  /* @__PURE__ */ jsx("span", { children: "Profile default" }),
-                  payload?.model && /* @__PURE__ */ jsx("span", { className: "rk-sheet-sub", children: payload.model })
-                ] }),
-                !value && /* @__PURE__ */ jsx(Codicon, { name: "check", size: "1rem" })
-              ] }),
-              status !== "ready" && /* @__PURE__ */ jsx("p", { className: "rk-sheet-note", role: "status", children: status === "loading" ? "Loading your models\u2026" : "Couldn't load your models. Close this and open it again to retry." }),
-              groups.map((group) => /* @__PURE__ */ jsxs("div", { "aria-label": group.name, className: "rk-sheet-provider", role: "group", children: [
-                /* @__PURE__ */ jsx("span", { "aria-hidden": true, className: "rk-sheet-provider-name", children: group.name }),
-                group.models.map((model) => /* @__PURE__ */ jsxs(
-                  "button",
-                  {
-                    "aria-pressed": model.value === value,
-                    className: "rk-sheet-row",
-                    onClick: () => pick(model.value),
-                    type: "button",
-                    children: [
-                      /* @__PURE__ */ jsx("span", { className: "rk-sheet-row-text", children: model.label }),
-                      model.value === value && /* @__PURE__ */ jsx(Codicon, { name: "check", size: "1rem" })
-                    ]
-                  },
-                  model.value
-                ))
-              ] }, group.key))
-            ] })
-          ] })
-        ] })
-      ] })
-    ] });
-  }
-
   // src/lib/delegation-outcomes.js
   var PROBLEMS = {
     inactive: "Turn on agent pickup first.",
-    native_host_required: "Agent pickup isn't available in this Hermes setup. You can still use the Reminders board.",
     select_lists: "Choose a list for the board first.",
     owner_board_unavailable: "This Hermes isn't set up for agent work yet.",
     // Task-link setup (link-setup BUILD.md): activate refuses until links are ready or "Only on this Mac".
@@ -2230,27 +2006,6 @@
   font-size: 0.95rem;
   line-height: 1;
 }
-
-.rk-composer-model {
-  display: flex;
-  min-width: 0;
-  max-width: min(50%, 24rem);
-}
-.rk-composer-model .rk-model-trigger {
-  height: var(--composer-control-size, 1.5rem);
-  max-width: 100%;
-  border-radius: 0.375rem;
-  padding: 0 0.5rem;
-  font-size: 0.75rem;
-  color: var(--rk-text-tertiary);
-}
-.rk-composer-model .rk-model-trigger:hover {
-  background: var(--chrome-action-hover);
-  color: var(--rk-text-primary);
-}
-.rk-composer-model .rk-model {
-  max-width: 100%;
-}
 `;
 
   // src/task-link/TaskPanel.jsx
@@ -2373,7 +2128,7 @@
     }
     return null;
   }
-  function TaskConversation({ api, autoFocus, modelPicker, dest, details, earlier = false, footer, hold = null, knownLabels = null, occurrenceRows = null, meta, onClose, onOccurrence, onOpen, onSignIn, onTitle, paused = null, pill, previous = null, queuedLabel, recovery = null, repeating = true, title, upcoming = null }) {
+  function TaskConversation({ api, autoFocus, dest, details, earlier = false, footer, hold = null, knownLabels = null, occurrenceRows = null, meta, onClose, onOccurrence, onOpen, onSignIn, onTitle, paused = null, pill, previous = null, queuedLabel, recovery = null, repeating = true, title, upcoming = null }) {
     const { load, attention, refresh, setOccurrence } = useTaskLink(dest, api, onTitle, recovery?.row);
     const view = load.view;
     const acceptance = useAcceptance(api, refresh);
@@ -2495,7 +2250,6 @@
             autoFocus,
             dest,
             mode,
-            modelPicker,
             onRefresh: refresh,
             accepting: receipt?.phase === "saving" || receipt?.phase === "confirmed",
             onAccept: () => acceptance.accept(view.taskId, {
@@ -2503,9 +2257,9 @@
               occurrence: attention.occurrence,
               occurrenceTaskId: attention.entry?.task_id
             }),
-            onSent: (what, text2) => {
+            onSent: (what, text) => {
               acceptance.clear(view.taskId);
-              setSent(sentReply(text2, thread));
+              setSent(sentReply(text, thread));
             },
             onSignIn,
             view
@@ -2649,15 +2403,12 @@
       /* @__PURE__ */ jsx(Codicon, { name: "chevron-down", size: "0.7rem" })
     ] });
   }
-  function Composer({ api, modelPicker: ModelPicker2, attention, autoFocus, dest, mode, onRefresh, onSent, onSignIn, view, accepting, onAccept }) {
+  function Composer({ api, attention, autoFocus, dest, mode, onRefresh, onSent, onSignIn, view, accepting, onAccept }) {
     const storageKey = draftKey(dest, view.selectedOccurrence, mode);
-    const [text2, setText] = useState(() => store.read(storageKey)?.text ?? "");
-    const [chosenModel, setChosenModel] = useState(() => store.read(storageKey)?.choice ?? null);
-    const task = attention.entry?.history?.task;
-    const choice = normalChoice(chosenModel ?? { model: task?.model_override, provider: task?.provider_override, effort: task?.reasoning_effort });
+    const [text, setText] = useState(() => store.read(storageKey)?.text ?? "");
     const [submission, setSubmission] = useState(() => {
       const saved = store.read(storageKey);
-      return saved?.key ? { key: saved.key, token: saved.token, text: saved.sent ?? saved.text, seen: saved.seen ?? 0, ...saved.model_choice ? { model_choice: saved.model_choice } : {} } : null;
+      return saved?.key ? { key: saved.key, token: saved.token, text: saved.sent ?? saved.text, seen: saved.seen ?? 0 } : null;
     });
     const [sending, setSending] = useState(null);
     const [notice, setNotice] = useState(null);
@@ -2667,43 +2418,41 @@
     const replaying = Boolean(submission?.key && submission.token === attention.token);
     const reply = mode === "reply";
     const action = reply ? "reply" : "request_changes";
-    const shown = replaying ? submission.text : text2;
+    const shown = replaying ? submission.text : text;
     const empty = !shown.trim();
     useEffect(() => {
-      const settled = settledSubmission(submission, attention.token, text2, threadOf(view));
+      const settled = settledSubmission(submission, attention.token, text, threadOf(view));
       if (!settled) return;
       setSubmission(null);
       if (settled.clear) setText("");
-    }, [submission, attention.token, text2, view]);
+    }, [submission, attention.token, text, view]);
     useEffect(() => {
       if (autoFocus) field.current?.focus({ preventScroll: true });
     }, [autoFocus]);
     useEffect(() => {
-      const saved = submission ? { key: submission.key, token: submission.token, sent: submission.text, seen: submission.seen ?? 0, ...submission.model_choice ? { model_choice: submission.model_choice } : {} } : {};
-      store.write(storageKey, text2 || submission || chosenModel ? { text: text2, choice: chosenModel, ...saved } : null);
-    }, [storageKey, text2, submission, chosenModel]);
+      const saved = submission ? { key: submission.key, token: submission.token, sent: submission.text, seen: submission.seen ?? 0 } : {};
+      store.write(storageKey, text || submission ? { text, ...saved } : null);
+    }, [storageKey, text, submission]);
     const send = async (what) => {
       if (sending || accepting) return;
       if (what === "accept") return onAccept();
       setNotice(null);
       setSending(what);
-      const made = nextSubmission(submission, attention.token, text2, newKey, ModelPicker2 && chosenModel ? choice : void 0);
+      const made = nextSubmission(submission, attention.token, text, newKey);
       const payload = { ...made, seen: made.seen ?? sentReply(made.text, threadOf(view)).seen };
       setSubmission(payload);
-      store.write(storageKey, { text: text2, key: payload.key, token: payload.token, sent: payload.text, seen: payload.seen, choice: chosenModel, ...payload.model_choice ? { model_choice: payload.model_choice } : {} });
+      store.write(storageKey, { text, key: payload.key, token: payload.token, sent: payload.text, seen: payload.seen });
       try {
         const response = await api.post("/attention/submissions", {
           key: payload.key,
           task_id: view.taskId,
           token: payload.token,
           action: what,
-          text: payload.text,
-          ...payload.model_choice ? { model_choice: payload.model_choice } : {}
+          text: payload.text
         });
         const outcome = submissionOutcome(response, what, view.taskId);
         if (!outcome.keepDraft) {
           setText("");
-          setChosenModel(null);
           setSubmission(null);
           store.write(storageKey, null);
         } else if (!outcome.sameKey) {
@@ -2772,16 +2521,6 @@
             value: shown
           }
         ),
-        ModelPicker2 && /* @__PURE__ */ jsx("div", { className: "rk-composer-model", children: /* @__PURE__ */ jsx(
-          ModelPicker2,
-          {
-            choice: replaying && submission.model_choice ? submission.model_choice : choice,
-            onChange: setChosenModel,
-            disabled: !ready || Boolean(sending || accepting || replaying),
-            labelPrefix: "Model and reasoning for this reply",
-            placement: "composer"
-          }
-        ) }),
         signInFirst ? /* @__PURE__ */ jsx(Button, { onClick: onSignIn, size: "sm", children: "Sign in to send" }) : /* @__PURE__ */ jsx(
           "button",
           {
@@ -2811,13 +2550,13 @@
       const separator = path.includes("?") ? "&" : "?";
       const scoped = path.includes("profile=") ? path : `${path}${separator}profile=${encodeURIComponent(profile)}`;
       const response = await sdk.authedFetch(`${basePrefix()}${API_ROOT}${scoped}`, { cache: "no-store", ...init });
-      const text2 = await response.text();
+      const text = await response.text();
       if (!response.ok) {
-        const error = new Error(`${response.status}: ${text2}`);
+        const error = new Error(`${response.status}: ${text}`);
         error.statusCode = response.status;
         throw error;
       }
-      return text2 ? JSON.parse(text2) : null;
+      return text ? JSON.parse(text) : null;
     };
     return {
       get: (path) => call(path),
@@ -2888,7 +2627,6 @@
       {
         api,
         dest,
-        modelPicker: ModelPicker,
         occurrenceRows: feed.occurrences,
         onOccurrence,
         onSignIn: signIn,

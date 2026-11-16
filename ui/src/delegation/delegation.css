@@ -105,44 +105,6 @@
   outline-offset: 2px;
 }
 
-/* Model for new tasks: the choice's name, truncated inside the popover; Hermes' catalog menu. */
-.rk-model {
-  display: inline-flex;
-  min-width: 0;
-  align-items: center;
-  gap: 0.25rem;
-}
-.rk-model-trigger {
-  max-width: 10rem;
-  gap: 0.25rem;
-  color: var(--rk-text-primary);
-  font-weight: 400;
-}
-.rk-model-trigger[data-default] {
-  color: var(--rk-text-secondary);
-}
-.rk-model-trigger[data-busy] {
-  color: var(--rk-text-tertiary);
-}
-.rk-model-label {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.rk-model-menu {
-  width: 18rem;
-  padding: 0;
-}
-/* Matches the catalog's own footer rows (Add custom model, Edit models). */
-.rk-model-menu .rk-model-default {
-  gap: 0.5rem;
-  border-radius: 0;
-  padding: 0.25rem 0.625rem;
-  font-size: 0.75rem;
-  color: var(--rk-text-secondary);
-}
-
 /* Board maximum stepper: − n + */
 .rk-stepper {
   display: inline-flex;

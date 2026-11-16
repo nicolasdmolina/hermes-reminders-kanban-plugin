@@ -46,9 +46,8 @@ async function loadComponents() {
     plugins: [{ name: 'host-boundary', setup(builder) {
       builder.onResolve({ filter: /^react(?:\/.*)?$/ }, args => ({ path: fileURLToPath(import.meta.resolve(args.path)), external: true }))
       builder.onResolve({ filter: /^@hermes\/plugin-sdk$/ }, () => ({ path: 'sdk', namespace: 'double' }))
-      builder.onResolve({ filter: /ModelChoice\.jsx$/ }, () => ({ path: 'models', namespace: 'double' }))
       builder.onResolve({ filter: /LinkSetup\.jsx$/ }, () => ({ path: 'links', namespace: 'double' }))
-      builder.onLoad({ filter: /.*/, namespace: 'double' }, args => ({ contents: args.path === 'sdk' ? sdk : args.path === 'models' ? 'export const ModelPicker = () => null' : 'export const LinkSetup = () => null; export const TaskLinksFact = LinkSetup, TaskLinksButton = LinkSetup' }))
+      builder.onLoad({ filter: /.*/, namespace: 'double' }, args => ({ contents: args.path === 'sdk' ? sdk : 'export const LinkSetup = () => null; export const TaskLinksFact = LinkSetup, TaskLinksButton = LinkSetup' }))
     } }]
   })
   const path = join(dir, 'components.mjs')
@@ -153,7 +152,7 @@ test('Connect actions, slow setup, connection scope, and list drafts', async () 
     await render(createElement(Wizard, { step: 'lists' }))
     assert.ok([...document.querySelectorAll('input')].every(input => input.checked), 'draft list selection survives a setup interruption')
 
-    const delegation = { data: { status: 'native_host_required', reason: 'Board-scoped delegation is unavailable.' } }
+    const delegation = { data: { status: 'setup_required', reason: 'owner_board_unavailable' } }
     assert.equal(module.pickupPhase(delegation).phase, 'unavailable')
     let opened = false
     await render(createElement(module.Setup, {
@@ -161,7 +160,7 @@ test('Connect actions, slow setup, connection scope, and list drafts', async () 
       pickup: createElement(module.PickupReview, { delegation, fallbackReady: 0 }),
       onOpenBoard: () => { opened = true }
     }))
-    assert.match(document.body.textContent, /still use the Reminders board/)
+    assert.match(document.body.textContent, /isn.t set up for agent work/)
     assert.equal(document.querySelectorAll('[role="switch"]').length, 0)
     await click('Open board')
     assert.equal(opened, true, 'unavailable pickup never blocks opening the board')

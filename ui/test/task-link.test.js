@@ -514,14 +514,6 @@ test('bindingDest and cardDest: the written link first, else the stored binding,
   assert.equal(cardDest({ source: { id: 'r3', notes: '' } }, 'default'), null)
 })
 
-test('reply retries freeze the chosen model and reasoning with the text', () => {
-  const choice = { model: 'task-model', provider: 'sandbox', effort: 'high' }
-  const pending = nextSubmission(null, 'review-1', '  revise  ', () => 'send-1', choice)
-  assert.deepEqual(pending, { key: 'send-1', token: 'review-1', text: 'revise', model_choice: choice })
-  assert.equal(nextSubmission(pending, 'review-1', 'different', () => 'send-2', { ...choice, effort: 'low' }), pending)
-  assert.deepEqual(nextSubmission(pending, 'review-2', 'next', () => 'send-2'), { key: 'send-2', token: 'review-2', text: 'next' })
-})
-
 test('a reply Hermes settled by itself is not offered again for the next question', () => {
   const kept = { key: 'k', token: 'old', text: 'Use the blue one' }
   const thread = [{ type: 'you', text: 'Use the blue one' }]

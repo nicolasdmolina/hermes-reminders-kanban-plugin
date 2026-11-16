@@ -18,7 +18,6 @@ const shown = (tone, short, message) => ({ tone, short, message, replay: false, 
 
 const PROBLEMS = {
   inactive: 'Turn on agent pickup first.',
-  native_host_required: "Agent pickup isn't available in this Hermes setup. You can still use the Reminders board.",
   select_lists: 'Choose a list for the board first.',
   owner_board_unavailable: "This Hermes isn't set up for agent work yet.",
   // Task-link setup (link-setup BUILD.md): activate refuses until links are ready or "Only on this Mac".

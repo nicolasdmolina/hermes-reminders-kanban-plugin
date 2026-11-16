@@ -1,6 +1,10 @@
 import multiprocessing
+import subprocess
+import sys
 from pathlib import Path
 from unittest.mock import patch
+
+import pytest
 
 from reminders_kanban.reminders import helper
 
@@ -207,3 +211,27 @@ def test_build_failure_returns_action_status_instead_of_http_500(tmp_path, monke
         response = TestClient(app).post('/delegation/actions', json={'action': 'accept'})
     assert response.status_code == 200
     assert response.json()['status'] == 'helper_build_failed'
+
+
+@pytest.mark.skipif(sys.platform != "darwin", reason="codesign is macOS only")
+def test_identity_requirement_is_one_codesign_parses():
+    """The pinned-identity check must hand codesign requirement text, not a file path."""
+    real = subprocess.run
+    checked = []
+
+    def run(args, **kwargs):
+        if "-dvv" in args:
+            return subprocess.CompletedProcess(args, 0, "", "Authority=Reminders Kanban Dev\n")
+        if any(arg.startswith("-R") for arg in args):
+            # An Apple-signed binary parses the rule and fails it (3); a rule codesign cannot
+            # parse fails differently (1, "invalid requirement specification").
+            result = real([*args[:-1], "/usr/bin/true"], capture_output=True, text=True,
+                          timeout=20)
+            checked.append(result)
+            raise subprocess.CalledProcessError(result.returncode, args, stderr=result.stderr)
+        return subprocess.CompletedProcess(args, 0, "", "")
+
+    with patch.object(helper.subprocess, "run", run), pytest.raises(helper.HelperError):
+        helper._verify(Path("RK Reminders Helper.app"), "A" * 40)
+    assert checked[0].returncode == 3, checked[0].stderr
+    assert "invalid requirement" not in checked[0].stderr

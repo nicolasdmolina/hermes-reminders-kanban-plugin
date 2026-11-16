@@ -306,70 +306,7 @@ def test_recovery_views_follow_attempt_and_source(
         assert saved[field] == task[field]
 
 
-@pytest.mark.parametrize('action,state', [('reply', 'question'), ('request_changes', 'result')])
-def test_task_model_is_applied_before_continuation_and_replayed(conversation, action, state):
-    attention, source, owner, admission, phase, comments = conversation
-    phase(state)
-    choices = []
-    owner.set_model_choice = lambda task, choice: choices.append((task, choice.model_dump()))
-    body = dict(submission(attention, action), model_choice={
-        'model': 'task-model', 'provider': 'sandbox', 'effort': 'high'})
-    original = owner.resume
-
-    def resume(task):
-        assert choices[-1] == ('0', body['model_choice'])
-        return original(task)
-
-    owner.resume = resume
-    assert attention.submit(**body)['status'] == 'submitted'
-    assert Attention(attention.owner).submit(**body)['status'] == 'submitted'
-    assert len(choices) == 1 and len(comments) == 1 and admission.starts == 2
-    with pytest.raises(OperationConflict):
-        attention.submit(**dict(body, model_choice=dict(body['model_choice'], effort='low')))
-    assert source.writes == 0
-
-
-def test_stale_submission_never_changes_model(conversation):
-    attention, _, owner, _, phase, _ = conversation
-    phase('result')
-    body = dict(submission(attention, 'request_changes'), model_choice={'effort': 'none'})
-    phase('result')
-    owner.set_model_choice = lambda *_: pytest.fail('stale choice applied')
-    assert attention.submit(**body)['status'] == 'conflict'
-
-
-def test_invalid_model_choice_rejected_before_submission(conversation):
-    attention, _, _, _, phase, _ = conversation
-    phase('question')
-    app = FastAPI()
-    app.include_router(router)
-    app.dependency_overrides[service] = lambda: attention.owner
-    client = TestClient(app)
-    assert client.post('/attention/submissions', json=dict(
-        submission(attention), model_choice={'model': 'missing provider'})).status_code == 422
-
-
-def test_lost_model_save_retries_without_starting_worker(conversation):
-    attention, _, owner, admission, phase, comments = conversation
-    phase('result')
-    body = dict(submission(attention, 'request_changes'), model_choice={'effort': 'none'})
-    saves = []
-
-    def interrupted(task, choice):
-        saves.append(choice.model_dump())
-        raise OSError('lost settings response')
-
-    owner.set_model_choice = interrupted
-    with pytest.raises(OSError):
-        attention.submit(**body)
-    assert admission.starts == 1 and not comments
-    owner.set_model_choice = lambda task, choice: saves.append(choice.model_dump())
-    assert Attention(attention.owner).submit(**body)['status'] == 'submitted'
-    assert saves[0] == saves[1] and len(comments) == 1 and admission.starts == 2
-
-
-@pytest.mark.parametrize("resumed", ["unblocked", "specified"], ids=["first", "follow-up"])
-def test_a_reply_interrupted_after_hermes_resumed_finishes_by_itself(conversation, resumed):
+def test_a_reply_interrupted_after_hermes_resumed_finishes_by_itself(conversation):
     attention, _, owner, admission, phase, comments = conversation
     phase("question")
     body = submission(attention)
@@ -377,9 +314,8 @@ def test_a_reply_interrupted_after_hermes_resumed_finishes_by_itself(conversatio
     events = admission.kb.list_events()
 
     def lost(*args, **kwargs):
-        # Hermes did resume the task (its own event says so); queueing never answered.
-        # (A follow-up question leaves triage with `specified`, not `unblocked`.)
-        events.append(SimpleNamespace(id=len(events) + 1, run_id=None, kind=resumed,
+        # The task did resume (its own event says so); queueing never answered.
+        events.append(SimpleNamespace(id=len(events) + 1, run_id=None, kind="unblocked",
                                       payload=None))
         raise OSError("lost response")
 

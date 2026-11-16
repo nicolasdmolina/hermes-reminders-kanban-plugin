@@ -306,9 +306,8 @@ def test_delegation_discovery_does_not_probe_on_controls(setup, monkeypatch):
     from reminders_kanban.api import delegation
 
     owner, host, _ = setup
-    monkeypatch.setattr(delegation, 'ensure_board', lambda home: 'fixture')
     monkeypatch.setattr(
-        delegation, 'Admission', lambda board: type('Admission', (), {'board': board})())
+        delegation, 'Admission', lambda home: type('Admission', (), {'board': 'fixture'})())
     monkeypatch.setattr('reminders_kanban.links.setup.probe', host.fetch)
     monkeypatch.setattr('reminders_kanban.links.setup.command', host.run)
     calls = []

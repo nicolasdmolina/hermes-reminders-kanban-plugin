@@ -390,24 +390,3 @@
   font-size: 0.95rem;
   line-height: 1;
 }
-
-.rk-composer-model {
-  display: flex;
-  min-width: 0;
-  max-width: min(50%, 24rem);
-}
-.rk-composer-model .rk-model-trigger {
-  height: var(--composer-control-size, 1.5rem);
-  max-width: 100%;
-  border-radius: 0.375rem;
-  padding: 0 0.5rem;
-  font-size: 0.75rem;
-  color: var(--rk-text-tertiary);
-}
-.rk-composer-model .rk-model-trigger:hover {
-  background: var(--chrome-action-hover);
-  color: var(--rk-text-primary);
-}
-.rk-composer-model .rk-model {
-  max-width: 100%;
-}
