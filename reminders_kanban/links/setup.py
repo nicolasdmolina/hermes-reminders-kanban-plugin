@@ -1,7 +1,6 @@
 """Explicit task-link setup. All host mutations are confined to POST operations."""
 
 import fcntl
-import io
 import json
 import os
 import shutil
@@ -13,11 +12,11 @@ import time
 import urllib.error
 import urllib.request
 from contextlib import contextmanager
-from datetime import UTC, datetime
 from pathlib import Path
 from urllib.parse import urlsplit
 
 from reminders_kanban.links import origin_error
+from reminders_kanban.process_env import child_env
 
 
 def read_state(home):
@@ -148,7 +147,7 @@ def cli_path():
 
 def command(binary, *args):
     return subprocess.run([binary, *args], check=True, capture_output=True,
-                          text=True, timeout=5).stdout
+                          text=True, timeout=5, env=child_env()).stdout
 
 
 def tailscale(binary, run, local):
@@ -180,7 +179,7 @@ def tailscale(binary, run, local):
 
 class Setup:
     def __init__(self, home, *, config_home=None, fetch=probe, run=command, binary=cli_path,
-                 env=None, backfill=None):
+                 env=None, backfill=None, set_url=None):
         self.home = home
         self.config_home = config_home or (home.parent.parent if home.parent.name == 'profiles'
                                            else home)
@@ -188,6 +187,7 @@ class Setup:
         self.fetch, self.run, self.binary = fetch, run, binary
         self.env = os.environ if env is None else env
         self.backfill = backfill
+        self.set_url = set_url or self._set_url
 
     def config(self):
         from ruamel.yaml import YAML
@@ -200,6 +200,18 @@ class Setup:
         if not isinstance(config, dict):
             raise ValueError('configuration must be a mapping')
         return yaml, data, config
+
+    def _set_url(self, value):
+        binary = shutil.which('hermes')
+        if not binary:
+            raise OSError('Hermes CLI is unavailable')
+        args = ['config', 'unset', 'dashboard.public_url'] if value is None else [
+            'config', 'set', 'dashboard.public_url', value]
+        subprocess.run([binary, *args], check=True, capture_output=True, text=True,
+                       timeout=30, env=child_env(HERMES_HOME=str(self.config_home)))
+
+    def stored_url(self):
+        return (self.config()[2].get('dashboard') or {}).get('public_url')
 
     def counts(self):
         pending = conflicts = 0
@@ -266,10 +278,9 @@ class Setup:
 
     @contextmanager
     def attempt(self):
-        existed = self.path.exists()
         state_path = self.home / 'reminders-kanban/link-setup.json'
         previous_state = state_path.read_bytes() if state_path.exists() else None
-        receipt = dict(keep=False, handler=None, written=None, backup=None)
+        receipt = dict(keep=False, handler=None, written=None, previous_url=None)
         try:
             yield receipt
         finally:
@@ -284,12 +295,9 @@ class Setup:
                             self.run(handler['binary'], 'serve',
                                      f'--https={handler["port"]}', 'off')
                 finally:
-                    if (receipt['written'] is not None and self.path.exists()
-                            and self.path.read_bytes() == receipt['written']):
-                        if existed:
-                            atomic(self.path, Path(receipt['backup']).read_bytes())
-                        else:
-                            self.path.unlink()
+                    if (receipt['written'] is not None
+                            and self.stored_url() == receipt['written']):
+                        self.set_url(receipt['previous_url'])
                     if previous_state is None:
                         state_path.unlink(missing_ok=True)
                     else:
@@ -319,29 +327,24 @@ class Setup:
                 result = check(address, self.fetch)
                 if result['status'] not in {'ok', 'restart_needed'}:
                     return result
-            yaml, original, config = self.config()
+            previous_url = self.stored_url()
             state = read_state(self.home)
             with self.attempt() as receipt:
                 if current['address'] != address:
-                    backup = self.path.with_name('config.yaml.rk-backup-' +
-                                                datetime.now(UTC).strftime('%Y%m%dT%H%M%S%fZ'))
-                    atomic(backup, original)
-                    if config.get('dashboard') is None:
-                        config['dashboard'] = {}
-                    config['dashboard']['public_url'] = address
-                    stream = io.StringIO()
-                    yaml.dump(config, stream)
-                    written = stream.getvalue().encode()
-                    # Undo belongs to this address change, not an earlier setup operation.
                     state.pop('handler', None)
-                    state.update(address=address, backup=str(backup), written=written.hex())
+                    state.pop('backup', None)
+                    state.pop('written', None)
+                    state.update(address=address, previous_url=previous_url)
+                    receipt.update(written=address, previous_url=previous_url)
+                    self.set_url(address)
+                    if self.stored_url() != address:
+                        raise OSError('Hermes did not save the requested task-link address')
                     save_state(self.home, state)
-                    receipt.update(written=written, backup=str(backup))
-                    atomic(self.path, written)
-                if not state.get('written'):
-                    state['written'] = original.hex()
+                if 'previous_url' not in state:
+                    state = dict(mode=state.get('mode', 'none'), address=address,
+                                 previous_url=previous_url)
                     save_state(self.home, state)
-                reply = dict(address=address, backup=state.get('backup'))
+                reply = dict(address=address)
                 code, body = self.fetch(current['dashboard']['local'], urlsplit(address).netloc)
                 if code != 200 or body.get('auth_required') is not True or not signin(body):
                     receipt['keep'] = True
@@ -379,18 +382,22 @@ class Setup:
     def undo(self):
         with setup_lock(self.config_home):
             state = read_state(self.home)
-            if (self.env.get('HERMES_DASHBOARD_PUBLIC_URL') or not state.get('written')
-                    or self.path.read_bytes().hex() != state.get('written')):
+            if (self.env.get('HERMES_DASHBOARD_PUBLIC_URL') or 'previous_url' not in state
+                    or self.stored_url() not in (state.get('address'), state.get('previous_url'))):
                 return dict(status='changed_since')
             handler = state.get('handler')
             if handler:
                 serve = json.loads(self.run(handler['binary'], 'serve', 'status', '--json'))
                 key = urlsplit(handler['address']).netloc
-                if (serve.get('Web', {}).get(key, {}).get('Handlers')
-                        != {'/': {'Proxy': handler['local']}}):
-                    return dict(status='changed_since')
-                self.run(handler['binary'], 'serve', f'--https={handler["port"]}', 'off')
-            if state.get('backup'):
-                atomic(self.path, Path(state['backup']).read_bytes())
+                route = serve.get('Web', {}).get(key)
+                if route is not None:
+                    if route.get('Handlers') != {'/': {'Proxy': handler['local']}}:
+                        return dict(status='changed_since')
+                    self.run(handler['binary'], 'serve', f'--https={handler["port"]}', 'off')
+                # A prior undo may have removed our route before the CLI failed.
+            if self.stored_url() != state['previous_url']:
+                self.set_url(state['previous_url'])
+            if self.stored_url() != state['previous_url']:
+                raise OSError('Hermes did not restore the previous task-link address')
             save_state(self.home, {'mode': 'none'})
             return dict(status='undone')

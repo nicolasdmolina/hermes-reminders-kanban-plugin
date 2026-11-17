@@ -13,6 +13,7 @@ import subprocess
 import tempfile
 from pathlib import Path
 
+from reminders_kanban.process_env import child_env
 from reminders_kanban.reminders import helper
 
 IDENTITY_NAME = "Reminders Kanban Dev"
@@ -30,7 +31,7 @@ MESSAGES = {
 
 def _run(args, *, timeout=20, check=True, env=None):
     return subprocess.run(args, check=check, capture_output=True, text=True, timeout=timeout,
-                          env=env)
+                          env=child_env(**(env or {})))
 
 
 def _result(status):
@@ -192,7 +193,7 @@ def _create_identity():
         _run([
             "/usr/bin/openssl", "pkcs12", "-export", "-inkey", str(key), "-in", str(certificate),
             "-out", str(archive), "-passout", "env:RK_ARCHIVE_PASSPHRASE",
-        ], env={**os.environ, "RK_ARCHIVE_PASSPHRASE": passphrase})
+        ], env={"RK_ARCHIVE_PASSPHRASE": passphrase})
         archive.chmod(0o600)
         der = _run([
             "/usr/bin/openssl", "x509", "-in", str(certificate), "-fingerprint", "-sha1", "-noout",
