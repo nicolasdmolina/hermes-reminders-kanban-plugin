@@ -50,7 +50,7 @@ To stop background passes entirely, disable the plugin. Administrators can also 
 
 Local task review works without a public address. For links that open from another device, configure an authenticated HTTPS address for the Hermes dashboard and verify it from that device. The dashboard must serve the plugin page as well as the API.
 
-Setup can use an existing Tailscale installation to configure a private HTTPS Serve route after you apply that option. It can also save your own dashboard address. Configuration changes keep a local backup. The plugin does not configure public Internet routing or host a dashboard for you. Do not put passwords or access tokens into reminder URLs. Existing task links keep their original address, so review address changes before applying them.
+Setup can use an existing Tailscale installation to configure a private HTTPS Serve route after you apply that option. It can also save your own dashboard address. Configuration changes use the Hermes CLI to set only dashboard.public_url. Undo retains only the previous URL and preserves unrelated settings; the plugin does not create a configuration backup. Helper and setup commands receive a minimal environment, not inherited provider credentials. The plugin does not configure public Internet routing or host a dashboard for you. Do not put passwords or access tokens into reminder URLs. Existing task links keep their original address, so review address changes before applying them.
 
 ## Build your own package
 

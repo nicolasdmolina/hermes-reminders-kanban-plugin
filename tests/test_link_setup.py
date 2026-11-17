@@ -60,7 +60,24 @@ def setup(tmp_path):
     host = Host()
     config = tmp_path / 'config.yaml'
     config.write_text('# keep this\nmodel: example\ndashboard:\n  port: 9119 # keep port\n')
-    owner = Setup(tmp_path, fetch=host.fetch, run=host.run, binary=lambda: 'fixture', env={})
+    def set_url(value):
+        import io
+
+        from ruamel.yaml import YAML
+        yaml = YAML()
+        yaml.preserve_quotes = True
+        data = yaml.load(config.read_text()) if config.exists() else {}
+        data = data or {}
+        dashboard = data.setdefault('dashboard', {})
+        if value is None:
+            dashboard.pop('public_url', None)
+        else:
+            dashboard['public_url'] = value
+        stream = io.StringIO()
+        yaml.dump(data, stream)
+        config.write_text(stream.getvalue())
+    owner = Setup(tmp_path, set_url=set_url, fetch=host.fetch, run=host.run,
+                  binary=lambda: 'fixture', env={})
     app = FastAPI()
     app.include_router(link_setup.router)
     app.dependency_overrides[link_setup.service] = lambda: owner
@@ -479,12 +496,12 @@ def test_apply_refusal_rolls_back_only_owned_changes(setup, failure, edited):
             status_reads += 1
             if status_reads == 2 and failure == 'stale_before':
                 if edited:
-                    owner.path.write_bytes(owner.path.read_bytes() + b'# edit\n')
+                    owner.path.write_bytes(owner.path.read_bytes() + b'unrelated: retained\n')
                 host.status['BackendState'] = 'Stopped'
         result = original_run(binary, *args)
         if '--bg' in args:
             if edited:
-                owner.path.write_bytes(owner.path.read_bytes() + b'# edit\n')
+                owner.path.write_bytes(owner.path.read_bytes() + b'unrelated: retained\n')
             if failure == 'stale_after':
                 host.serve['Web'][f'{HOST}:8443']['Handlers']['/'] = {'Proxy': 'http://other'}
             if failure == 'command_error':
@@ -499,8 +516,8 @@ def test_apply_refusal_rolls_back_only_owned_changes(setup, failure, edited):
         assert owner.apply('tailscale', expected=ADDRESS)['status'] == (
             'funnel_on' if failure == 'funnel' else 'stale')
     if edited:
-        assert owner.path.read_bytes().endswith(b'# edit\n')
-        assert ADDRESS in owner.path.read_text()
+        assert owner.path.read_bytes().endswith(b'unrelated: retained\n')
+        assert owner.stored_url() is None
     else:
         assert owner.path.read_bytes() == before
     assert state_path.read_bytes() == state_before
@@ -545,7 +562,7 @@ def test_refusal_restores_absent_config(setup):
     owner.path.unlink()
     host.gated = host.funnel = True
     assert owner.apply('tailscale', expected=ADDRESS)['status'] == 'funnel_on'
-    assert not owner.path.exists()
+    assert owner.stored_url() is None
 
 
 def test_old_background_probe_cannot_replace_fresh_result(setup):
@@ -604,3 +621,117 @@ def test_apply_keeps_quoted_values_other_readers_depend_on(setup):
     saved = owner.path.read_text()
     assert "mode: 'off'" in saved and 'ask: "yes"' in saved
     assert f'public_url: {ADDRESS}' in saved
+
+
+def test_undo_preserves_unrelated_edits_and_stores_no_secrets(setup):
+    owner, host, _ = setup
+    owner.path.write_text(owner.path.read_text() + 'provider_secret: TOP_SECRET\n')
+    host.gated = True
+    assert owner.apply('tailscale', expected=ADDRESS)['status'] == 'ready'
+    state = (owner.home / 'reminders-kanban/link-setup.json').read_text()
+    assert 'TOP_SECRET' not in state
+    assert 'backup' not in state and 'written' not in state
+    assert not list(owner.home.glob('config.yaml.rk-backup-*'))
+    owner.path.write_text(owner.path.read_text() + 'unrelated: retained\n')
+    assert owner.undo()['status'] == 'undone'
+    assert 'unrelated: retained' in owner.path.read_text()
+    assert 'TOP_SECRET' in owner.path.read_text()
+
+
+def test_undo_refuses_changed_url(setup):
+    owner, host, _ = setup
+    host.gated = True
+    owner.apply('tailscale', expected=ADDRESS)
+    owner.set_url('https://changed.ts.net')
+    assert owner.undo()['status'] == 'changed_since'
+
+
+def test_config_command_failure_leaves_config_unchanged(setup):
+    owner, host, client = setup
+    before = owner.path.read_bytes()
+    def fail(value):
+        raise subprocess.CalledProcessError(1, 'hermes')
+    owner.set_url = fail
+    result = client.post('/task-links/setup/apply', json={
+        'mode': 'tailscale', 'expected': ADDRESS}).json()
+    assert result['status'] == 'unavailable'
+    assert owner.path.read_bytes() == before
+
+
+def test_config_cli_scoped_to_home_and_minimal_environment(setup, monkeypatch):
+    owner, _, _ = setup
+    monkeypatch.setenv('OPENAI_API_KEY', 'must-not-leak')
+    monkeypatch.setenv('HERMES_PROFILE', 'wrong-profile')
+    monkeypatch.setattr('reminders_kanban.links.setup.shutil.which', lambda _: '/fixture/hermes')
+    calls = []
+    monkeypatch.setattr('reminders_kanban.links.setup.subprocess.run',
+                        lambda args, **kwargs: calls.append((args, kwargs)))
+    owner._set_url(ADDRESS)
+    owner._set_url(None)
+    assert calls[0][0] == ['/fixture/hermes', 'config', 'set', 'dashboard.public_url', ADDRESS]
+    assert calls[1][0] == ['/fixture/hermes', 'config', 'unset', 'dashboard.public_url']
+    for _, kwargs in calls:
+        assert kwargs['env']['HERMES_HOME'] == str(owner.config_home)
+        assert 'OPENAI_API_KEY' not in kwargs['env']
+        assert 'HERMES_PROFILE' not in kwargs['env']
+        assert kwargs['check'] is True
+
+
+def test_timeout_after_config_write_rolls_back_only_url(setup):
+    owner, _, _ = setup
+    setter = owner.set_url
+    def uncertain(value):
+        setter(value)
+        if value == ADDRESS:
+            owner.path.write_text(owner.path.read_text() + 'unrelated: retained\n')
+            raise subprocess.TimeoutExpired('hermes', 30)
+    owner.set_url = uncertain
+    with pytest.raises(subprocess.TimeoutExpired):
+        owner.apply('tailscale', expected=ADDRESS)
+    assert owner.stored_url() is None
+    assert 'unrelated: retained' in owner.path.read_text()
+
+
+def test_legacy_receipt_scrubbed_without_restoring_config(setup):
+    from reminders_kanban.links.setup import save_state
+    owner, host, _ = setup
+    owner.set_url(ADDRESS)
+    save_state(owner.home, dict(address=ADDRESS, written=b'secret'.hex(),
+                               backup='/not-read', mode='links'))
+    assert owner.undo()['status'] == 'changed_since'
+    host.gated = True
+    assert owner.apply('tailscale', expected=ADDRESS)['status'] == 'ready'
+    state = json.loads((owner.home / 'reminders-kanban/link-setup.json').read_text())
+    assert 'written' not in state and 'backup' not in state
+    assert owner.undo()['status'] == 'undone'
+    assert owner.stored_url() == ADDRESS
+
+
+@pytest.mark.parametrize('written', [False, True])
+def test_undo_retries_after_config_failure_without_losing_receipt(setup, written):
+    owner, host, _ = setup
+    host.gated = True
+    assert owner.apply('tailscale', expected=ADDRESS)['status'] == 'ready'
+    setter = owner.set_url
+    def fail(value):
+        if written:
+            setter(value)
+        raise subprocess.TimeoutExpired('hermes', 30)
+    owner.set_url = fail
+    with pytest.raises(subprocess.TimeoutExpired):
+        owner.undo()
+    assert f'{HOST}:8443' not in host.serve['Web']
+    assert 'previous_url' in (owner.home / 'reminders-kanban/link-setup.json').read_text()
+    owner.set_url = setter
+    assert owner.undo()['status'] == 'undone'
+    assert owner.stored_url() is None
+
+
+def test_undo_does_not_discard_receipt_when_cli_did_not_restore(setup):
+    owner, host, _ = setup
+    host.gated = True
+    owner.apply('tailscale', expected=ADDRESS)
+    owner.set_url = lambda value: None
+    with pytest.raises(OSError, match='did not restore'):
+        owner.undo()
+    assert 'previous_url' in (owner.home / 'reminders-kanban/link-setup.json').read_text()

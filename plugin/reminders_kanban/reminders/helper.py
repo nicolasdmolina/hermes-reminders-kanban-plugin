@@ -20,6 +20,8 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
 
+from reminders_kanban.process_env import child_env
+
 HELPER_SOURCE = Path(__file__).resolve().parents[2] / "native" / "reminders-helper"
 LEGACY_DIR = Path(tempfile.gettempdir()) / "reminders-kanban-helper"
 BUILD_DIR = Path.home() / "Library/Caches/reminders-kanban/helper"
@@ -49,16 +51,16 @@ def _lock(*, shared=False):
 def _verify(app, identity=None):
     try:
         subprocess.run(["codesign", "--verify", "--deep", "--strict", str(app)],
-                       check=True, capture_output=True, timeout=20)
+                       check=True, capture_output=True, timeout=20, env=child_env())
         signed = subprocess.run(["codesign", "-dvv", str(app)], check=True,
-                                capture_output=True, text=True, timeout=20)
+                                capture_output=True, text=True, timeout=20, env=child_env())
         if "Signature=adhoc" in signed.stderr or "Authority=" not in signed.stderr:
             raise HelperError("signing_required", "Helper requires a persistent signing identity")
         if identity:
             # "-R=<text>" is a requirement; a bare "-R <text>" is read as a file path.
             subprocess.run(["codesign", "--verify", "--strict",
                             f'-R=certificate leaf = H"{identity}"', str(app)],
-                           check=True, capture_output=True, timeout=20)
+                           check=True, capture_output=True, timeout=20, env=child_env())
     except (OSError, subprocess.SubprocessError) as exc:
         raise HelperError("signing_required", "Prepare Reminders access again") from exc
 
@@ -155,7 +157,8 @@ def _helper_app() -> Path:
                 subprocess.run(
                     [str(HELPER_SOURCE / "build.sh"), tmp], check=True,
                     capture_output=True, text=True,
-                    env=dict(os.environ, RK_COMPILE_ONLY="0", RK_SIGNING_IDENTITY=identity),
+                    env=child_env(RK_COMPILE_ONLY="0", RK_SIGNING_IDENTITY=identity,
+                                  RK_MACOS_TARGET=os.environ.get("RK_MACOS_TARGET", "14.0")),
                     timeout=180,
                 )
         except subprocess.CalledProcessError as exc:
@@ -201,7 +204,8 @@ def still_running(request: str | None = None) -> bool:
     """
     try:
         found = subprocess.run(
-            ["pgrep", "-f", re.escape(request or APP_NAME)], capture_output=True, timeout=10
+            ["pgrep", "-f", re.escape(request or APP_NAME)], capture_output=True, timeout=10,
+            env=child_env(),
         )
     except (OSError, subprocess.TimeoutExpired):
         return True
@@ -230,6 +234,7 @@ def run(op: str, timeout: float = 60, **fields: Any) -> Any:
                 capture_output=True,
                 timeout=timeout,
                 check=True,
+                env=child_env(),
             )
         except (subprocess.TimeoutExpired, subprocess.CalledProcessError) as exc:
             raise HelperError(
