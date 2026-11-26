@@ -13,6 +13,7 @@ def test_package_is_independent_and_contains_native_sources(tmp_path):
     assert (output / "native/reminders-helper/main.swift").is_file()
     assert (output / "native/reminders-helper/build.sh").stat().st_mode & 0o111
     assert (output / "dashboard/plugin_api.py").is_file()
+    assert not (output / "docs/media/demo.mp4").exists()
     assert not (output / "pyproject.toml").exists()
     assert not (output / "tests").exists()
     assert not any(p.is_symlink() or p.name == "__pycache__" for p in output.rglob("*"))
@@ -145,7 +146,7 @@ def test_public_source_allowlist_excludes_private_history_and_proofs():
     assert {"README.md", "LICENSE", "THIRD_PARTY_NOTICES.md", "licenses/codicons.txt",
             "ui/package-lock.json", "uv.lock",
             "scripts/package-plugin", "scripts/prepare-public-release",
-            "tests/test_packaging.py", ".github/workflows/ci.yml"} <= files
+            "tests/test_packaging.py", ".github/workflows/ci.yml", "docs/media/demo.mp4"} <= files
     assert not any(path.startswith((".git/", ".scratch/", ".claude/", "plugin/",
                                     "docs/agents/", "scripts/hermes-sandbox/"))
                    for path in files)
@@ -164,7 +165,7 @@ def test_public_source_optional_screenshot_is_only_included_when_present(tmp_pat
         shutil.copyfile(ROOT / fixed, target)
     image = Path("docs/media") / name
     assert image not in release["source_files"](tmp_path)
-    (tmp_path / image).parent.mkdir(parents=True)
+    (tmp_path / image).parent.mkdir(parents=True, exist_ok=True)
     (tmp_path / image).write_bytes(b"approved screenshot placeholder for the unit test")
     assert image in release["source_files"](tmp_path)
 

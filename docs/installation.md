@@ -17,14 +17,9 @@ hermes plugins install reminders-kanban --enable
 hermes plugins doctor reminders-kanban
 ```
 
-To install a specific GitHub release instead, copy the exact command from its release notes. It pins a full commit SHA and selects the package subdirectory. The command has this form:
+To install from a local clone, follow the [clean-checkout instructions](../README.md#install-on-your-mac). They check out the beta.4 commit reviewed for the catalog and install its built `plugin/` directory.
 
-```sh
-hermes plugins install 'nicolasdmolina/hermes-reminders-kanban-plugin#plugin' --ref <full-release-commit-sha> --enable --yes-deps
-hermes plugins doctor reminders-kanban
-```
-
-Replace `<full-release-commit-sha>` with the published release's full 40-character commit SHA. Enable the Desktop half in **Capabilities > Plugins**. Rescan if the Desktop bundle has not appeared.
+Enable Reminders Kanban in **Capabilities > Plugins** in Hermes Desktop. Rescan if the Desktop bundle has not appeared.
 
 ## Allow the native helper
 
@@ -50,7 +45,7 @@ To stop background passes entirely, disable the plugin. Administrators can also 
 
 Local task review works without a public address. For links that open from another device, configure an authenticated HTTPS address for the Hermes dashboard and verify it from that device. The dashboard must serve the plugin page as well as the API.
 
-Setup can use an existing Tailscale installation to configure a private HTTPS Serve route after you apply that option. It can also save your own dashboard address. Configuration changes keep a local backup. The plugin does not configure public Internet routing or host a dashboard for you. Do not put passwords or access tokens into reminder URLs. Existing task links keep their original address, so review address changes before applying them.
+Setup can use an existing Tailscale installation to configure a private HTTPS Serve route after you apply that option. It can also save your own dashboard address. Beta.4 keeps the previous address for undo. The plugin does not configure public Internet routing or host a dashboard for you. Do not put passwords or access tokens into reminder URLs. Existing task links keep their original address, so review address changes before applying them.
 
 ## Build your own package
 

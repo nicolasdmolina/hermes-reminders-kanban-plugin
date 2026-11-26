@@ -13,7 +13,7 @@ FIXED_FILES = (
     "plugin.yaml", "__init__.py", "dashboard/plugin_api.py", "dashboard/manifest.json",
     "ui/package.json", "ui/package-lock.json", "ui/build.mjs",
     "scripts/package-plugin", "scripts/prepare-public-release",
-    "docs/installation.md", "docs/development.md", ".github/workflows/ci.yml",
+    "docs/installation.md", "docs/development.md", "docs/media/demo.mp4", ".github/workflows/ci.yml",
 )
 SOURCE_TREES = (
     ("reminders_kanban", {".py"}),

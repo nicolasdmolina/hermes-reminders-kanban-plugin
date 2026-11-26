@@ -1,49 +1,62 @@
 # Hermes Reminders Kanban
 
-Apple Reminders as a Kanban board inside Hermes Desktop. Keep personal tasks and delegated work together, with changes saved back to Reminders.
+Turn Apple Reminders into a Kanban board in Hermes Desktop, where you can hand a task to Hermes and review the result.
 
-![Reminders board in Hermes Desktop with demo tasks](docs/media/board.png)
+[![Reminders in the Hermes sidebar, with one card in progress and one checked off][hero-image]](/docs/media/demo.mp4)
 
-The board in an isolated Hermes Desktop session, reading a real Reminders test list. One delegated task is running as a Hermes scheduled job and one accepted task is checked off in Reminders. The agent in this capture is a scripted test model.
+**[Watch the 70-second demo](/docs/media/demo.mp4)** · [Hermes Marketplace](https://hermes-agent.nousresearch.com/marketplace/reminders-kanban)
 
-The board has To do, Ready for Agent, In progress, Needs you, and Done columns. You can edit titles, notes, due dates, priorities, and lists. Filters separate personal and delegated tasks, and recurring and one-off reminders. Title labels such as `[Agent · Ready]` are editable text markers, not native Reminders tags.
+In the demo, Hermes asks “Which blue?” Watch what happens when you answer “Navy, please.” The recording uses plugin beta.3 in Hermes Desktop, an Apple Reminders test list, and real scheduled jobs. A scripted model supplies the replies.
 
-## Experimental preview
+## From a reminder to a result
 
-This is an experimental macOS preview for developers and early testers. Fresh-account setup is not yet verified. It requires macOS 14 or later, Xcode command-line tools, and Hermes Desktop. The helper is compiled locally and needs a persistent local code-signing identity and your Reminders permission. **Set up Reminders access** starts that local setup after your click and retains macOS consent prompts.
+Choose which Apple Reminders lists to show. Edit a title, note, due date, priority, or list on the board and the change saves back to Apple Reminders. Filter the board to see your own tasks, delegated work, or recurring reminders.
 
-Reminder browsing and editing use the native EventKit helper. Delegated work uses only public Hermes plugin interfaces. Each run is a Hermes scheduled job that the plugin creates for that run and removes afterwards, and the agent hands its result or question back through two plugin tools (`reminders_kanban_finish`, `reminders_kanban_ask`). Hermes runs it unattended under its own approval rules for scheduled jobs, on the profile's main model.
+1. **Delegate a card.** Open a reminder in **To do** and choose **Delegate**, or move it to **Ready for Agent**. Turn on **Agent pickup** when you want Hermes to start queued tasks.
+2. **Follow the work.** The running Hermes gateway picks up the card as a scheduled job and moves it to **In progress**. If Hermes asks a question, the card moves to **Needs you**. Open it, type your reply, and send it back.
+3. **Review the result.** The card returns to **Needs you**. Ask for changes or choose **Accept**. Accepting checks off the original reminder in Apple Reminders and moves the card to **Done**.
 
-The plugin supports questions, result review, retry, task links, and delegation for one occurrence or each due occurrence. Fresh-account setup and cross-device task links remain release checks.
+For a repeating reminder, you can delegate one occurrence or every due occurrence. Each result still comes back for review.
 
-## Install
+## Install on your Mac
 
-Requires Hermes 0.23.1 or later. Install from the Hermes plugin catalog:
+Use macOS 14 or later, Hermes Desktop with Hermes 0.23.1 or later, and Apple's Xcode Command Line Tools. Open Terminal to install the plugin from the Hermes Marketplace.
 
 ```sh
 hermes plugins install reminders-kanban --enable
+hermes plugins doctor reminders-kanban
 ```
 
-Read the [installation guide](docs/installation.md) for prerequisites, local helper setup, and host compatibility. To install straight from GitHub, use the pinned command in the release notes. The installable package is the `plugin/` subdirectory of this repository; the repository root contains editable source and development dependencies.
+<details>
+<summary>Install from a clean Git checkout</summary>
 
-## Data and background work
+These commands fetch the beta.4 release the Marketplace reviewed and install its built plugin. Use the same commit if you build beta.4 yourself.
 
-You choose the Reminders lists shown on the board. Human tasks are not eligible for agent pickup. Explicit delegation and activation authorize new work. Existing Ready labels appear in the setup preview before pickup is enabled.
+```sh
+git clone --single-branch https://github.com/nicolasdmolina/hermes-reminders-kanban-plugin.git
+cd hermes-reminders-kanban-plugin
+git fetch origin cc4c7784d6976c3cd6d6ed0879356557ad451481
+git switch --detach FETCH_HEAD
+hermes plugins install "file://$PWD#plugin" --ref "$(git rev-parse HEAD)" --enable
+hermes plugins doctor reminders-kanban
+```
 
-The plugin stores task bindings, settings, and its task store in the local Hermes profile (`reminders-kanban/`). It uses a native helper to read and write Apple Reminders. Reminders may sync through your Apple account. Delegated task content goes to Hermes and its configured model provider. While a delegated task runs, it appears as a scheduled job named `Reminders: <task>` in Hermes; the plugin removes the job when the run ends. The plugin adds no separate hosted service or telemetry endpoint. It runs local Swift compilation, code signing, and helper launches. Task-link setup checks the dashboard and installed Tailscale status. An explicit setup action can back up and update Hermes configuration or add a private Tailscale Serve route.
+Hermes identifies the local checkout as a custom source. A successful doctor check reports two registered tools.
 
-While enabled in a running gateway, the plugin checks work in the background every five seconds. One profile owner performs the passes. Turning pickup off stops new automatic starts while existing work can still be observed and reviewed. Disabling the plugin stops its background timer. Closing the board does not stop the gateway.
+</details>
 
-Local task review does not require a public address. Cross-device task links require your own reachable, authenticated HTTPS Hermes dashboard. The plugin does not provision public hosting. Links contain task identifiers, not authentication tokens.
+In Hermes Desktop, open **Capabilities > Plugins** and enable **Reminders Kanban**. Rescan if it hasn't appeared yet. Open **Reminders** in the sidebar, choose **Set up Reminders access** if prompted, and allow access in macOS. Select your lists and preview the board.
 
-## Limits
+## What runs on your Mac
 
-- Hermes is the only execution agent. Per-task agent or model selection is not supported; runs use the profile's main model.
-- Scheduled jobs follow Hermes' `approvals.cron_mode`. With the default, a run that needs an approval-gated command is refused that command.
-- Repeat schedules, subtasks, and attachments are edited in Apple Reminders.
-- An accepted result completes the reminder. Finishing agent work alone does not mark it complete.
-- A running, compatible owning gateway is required for background work. Opening a task link on another device does not transfer execution.
-- Use one execution Mac during this preview. Two independent Macs can briefly start the same reminder before iCloud syncs their claims. A claim write can also conflict with a phone note edit that has not synced yet. Real iCloud coordination remains unverified.
-- Permission denial, an unavailable helper, or Hermes refusing scheduled jobs needs attention before affected operations can continue.
+Hermes uses your profile's model and its scheduled-job approval settings. Delegated titles, notes, and replies go to your configured model provider. Keep the gateway running for background work. Turning pickup off stops new automatic starts.
 
-Read the [development guide](docs/development.md) to build, test, and reproduce the installable package. The project uses the [MIT license](LICENSE), with [third-party notices](THIRD_PARTY_NOTICES.md) for adapted icons.
+Board settings and task history live in your local Hermes profile. When you delegate a reminder, the plugin adds a line to its notes identifying the Mac working on it. If you've set up task links, that line also opens the card in Hermes.
+
+This is a macOS preview. Use one Mac for execution. Setup on a brand-new macOS account and iPhone-to-Mac iCloud sync still need verification. For local signing, permission recovery, and optional private task links on another device, see the [installation guide](docs/installation.md).
+
+[Source on GitHub][repository] · [Build and test](docs/development.md) · [MIT license](LICENSE) · [Third-party notices](THIRD_PARTY_NOTICES.md)
+
+[repository]: https://github.com/nicolasdmolina/hermes-reminders-kanban-plugin
+[demo-video-url]: https://github.com/nicolasdmolina/hermes-reminders-kanban-plugin/blob/main/docs/media/demo.mp4
+[hero-image]: docs/media/board.png
