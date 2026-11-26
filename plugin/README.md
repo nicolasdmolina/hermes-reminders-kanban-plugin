@@ -2,9 +2,16 @@
 
 Turn Apple Reminders into a Kanban board in Hermes Desktop, where you can hand a task to Hermes and review the result.
 
-[![Reminders in the Hermes sidebar, with one card in progress and one checked off][hero-image]](/docs/media/demo.mp4)
+![Reminders in the Hermes sidebar, with one card in progress and one checked off][hero-image]
 
-**[Watch the 70-second demo](/docs/media/demo.mp4)** · [Hermes Marketplace](https://hermes-agent.nousresearch.com/marketplace/reminders-kanban)
+<details>
+<summary><strong>Watch the 70-second demo</strong></summary>
+
+https://github.com/user-attachments/assets/af782ab9-aed8-4bbd-91bd-22add93a92d8
+
+[Open the video][demo-video-url] · [Download the MP4](/docs/media/demo.mp4?raw=true)
+
+</details>
 
 In the demo, Hermes asks “Which blue?” Watch what happens when you answer “Navy, please.” The recording uses plugin beta.3 in Hermes Desktop, an Apple Reminders test list, and real scheduled jobs. A scripted model supplies the replies.
 
@@ -20,7 +27,7 @@ For a repeating reminder, you can delegate one occurrence or every due occurrenc
 
 ## Install on your Mac
 
-Use macOS 14 or later, Hermes Desktop with Hermes 0.23.1 or later, and Apple's Xcode Command Line Tools. Open Terminal to install the plugin from the Hermes Marketplace.
+Use macOS 14 or later, Hermes Desktop with Hermes 0.23.1 or later, and Apple's Xcode Command Line Tools. Open Terminal to install the plugin from the [Hermes Marketplace](https://hermes-agent.nousresearch.com/marketplace/reminders-kanban).
 
 ```sh
 hermes plugins install reminders-kanban --enable
@@ -58,5 +65,5 @@ This is a macOS preview. Use one Mac for execution. Setup on a brand-new macOS a
 [Source on GitHub][repository] · [Build and test](docs/development.md) · [MIT license](LICENSE) · [Third-party notices](THIRD_PARTY_NOTICES.md)
 
 [repository]: https://github.com/nicolasdmolina/hermes-reminders-kanban-plugin
-[demo-video-url]: https://github.com/nicolasdmolina/hermes-reminders-kanban-plugin/blob/main/docs/media/demo.mp4
+[demo-video-url]: https://github.com/user-attachments/assets/af782ab9-aed8-4bbd-91bd-22add93a92d8
 [hero-image]: docs/media/board.png
