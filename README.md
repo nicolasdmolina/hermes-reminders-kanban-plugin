@@ -5,9 +5,9 @@ Turn Apple Reminders into a Kanban board in Hermes Desktop, where you can hand a
 ![Reminders in the Hermes sidebar, with one card in progress and one checked off][hero-image]
 
 <details>
-<summary><strong>Watch the 70-second demo</strong></summary>
+<summary><strong>Watch the 65-second demo</strong></summary>
 
-https://github.com/user-attachments/assets/af782ab9-aed8-4bbd-91bd-22add93a92d8
+https://github.com/user-attachments/assets/72257989-64f8-47c0-b5c2-9c2fb4390efd
 
 [Open the video][demo-video-url] · [Download the MP4](/docs/media/demo.mp4?raw=true)
 
@@ -65,5 +65,5 @@ This is a macOS preview. Use one Mac for execution. Setup on a brand-new macOS a
 [Source on GitHub][repository] · [Build and test](docs/development.md) · [MIT license](LICENSE) · [Third-party notices](THIRD_PARTY_NOTICES.md)
 
 [repository]: https://github.com/nicolasdmolina/hermes-reminders-kanban-plugin
-[demo-video-url]: https://github.com/user-attachments/assets/af782ab9-aed8-4bbd-91bd-22add93a92d8
+[demo-video-url]: https://github.com/user-attachments/assets/72257989-64f8-47c0-b5c2-9c2fb4390efd
 [hero-image]: docs/media/board.png
